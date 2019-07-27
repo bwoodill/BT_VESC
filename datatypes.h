@@ -492,6 +492,8 @@ typedef enum {
 	CAN_STATUS_1_2_3_4_5
 } CAN_STATUS_MODE;
 
+#include "applications/settings.h"
+
 typedef struct {
 	// Settings
 	uint8_t controller_id;
@@ -521,6 +523,9 @@ typedef struct {
 
 	// Nunchuk application settings
 	chuk_config app_chuk_conf;
+
+	// Nunchuk application settings
+	sikorski_data app_divex_conf;
 
 	// NRF application settings
 	nrf_config app_nrf_conf;

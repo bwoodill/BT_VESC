@@ -1,4 +1,6 @@
 *~
 
 build
+build_all/*
+
 .dep

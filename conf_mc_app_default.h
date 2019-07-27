@@ -30,7 +30,7 @@
 
 // User defined default app configuration file
 #ifdef APPCONF_DEFAULT_USER
-#include APPCONF_DEFAULT_USER
+#include"appconf_sikorski.h"
 #endif
 
 // Default configuration parameters that can be overridden

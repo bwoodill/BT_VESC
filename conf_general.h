@@ -61,14 +61,14 @@
 //#define HW_SOURCE "hw_49.c"
 //#define HW_HEADER "hw_49.h"
 
-//#define HW_SOURCE "hw_410.c" // Also for 4.11 and 4.12
-//#define HW_HEADER "hw_410.h" // Also for 4.11 and 4.12
+#define HW_SOURCE "hw_410.c" // Also for 4.11 and 4.12
+#define HW_HEADER "hw_410.h" // Also for 4.11 and 4.12
 
 // Benjamins first HW60 PCB with PB5 and PB6 swapped
 //#define HW60_VEDDER_FIRST_PCB
 
-#define HW_SOURCE "hw_60.c"
-#define HW_HEADER "hw_60.h"
+//#define HW_SOURCE "hw_60.c"
+//#define HW_HEADER "hw_60.h"
 
 //#define HW_SOURCE "hw_r2.c"
 //#define HW_HEADER "hw_r2.h"
@@ -130,13 +130,14 @@
 //#define MCCONF_DEFAULT_USER			"mcconf_sp_540kv.h"
 //#define MCCONF_DEFAULT_USER			"mcconf_castle_2028.h"
 //#define MCCONF_DEFAULT_USER			"mcconf_ellwee.h"
-
+#define		MCCONF_DEFAULT_USER			"mcconf_dxtras.h"
 /*
  * Select default user app configuration
  */
 //#define APPCONF_DEFAULT_USER		"appconf_example_ppm.h"
 //#define APPCONF_DEFAULT_USER		"appconf_custom.h"
 //#define APPCONF_DEFAULT_USER		"appconf_ellwee.h"
+#define APPCONF_DEFAULT_USER		"appconf_dxtras.h"
 
 /*
  * Set APP_CUSTOM_TO_USE to the name of the main C file of the custom application.

@@ -55,8 +55,6 @@ float app_nunchuk_get_decoded_chuk(void);
 void app_nunchuk_update_output(chuck_data *data);
 
 // Custom apps
-void app_custom_start(void);
-void app_custom_stop(void);
-void app_custom_configure(app_configuration *conf);
+void app_sikorski_init(void);
 
 #endif /* APP_H_ */
