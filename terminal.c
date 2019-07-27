@@ -41,6 +41,8 @@
 #include <stdio.h>
 #include <math.h>
 
+#include "applications/settings.h"
+
 // Settings
 #define FAULT_VEC_LEN						25
 #define CALLBACK_LEN						40
@@ -63,6 +65,11 @@ void terminal_process_string(char *str) {
 	enum { kMaxArgs = 64 };
 	int argc = 0;
 	char *argv[kMaxArgs];
+
+	if (str[0] == '$') {
+		settings_command(str);
+		return;
+	}
 
 	char *p2 = strtok(str, " ");
 	while (p2 && argc < kMaxArgs) {

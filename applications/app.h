@@ -68,8 +68,6 @@ uint16_t app_balance_get_state(void);
 uint16_t app_balance_get_switch_value(void);
 
 // Custom apps
-void app_custom_start(void);
-void app_custom_stop(void);
-void app_custom_configure(app_configuration *conf);
+void app_sikorski_init(void);
 
 #endif /* APP_H_ */

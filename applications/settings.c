@@ -1,0 +1,495 @@
+/*
+ Copyright 2019 Claroworks
+
+ written by Mike Wilson mail4mikew@gmail.com
+
+ This file is part of an application designed to work with VESC firmware,
+ and is intended for use with dive propulsion vehicles.
+
+ This firmware is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ This firmware is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+#include <stddef.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "settings.h"
+#include "conf_general.h"
+#include "commands.h"
+#include "datatypes.h"
+#include "app.h"
+#include "defaults.h"
+
+static sikorski_data *settings;
+
+void app_sikorski_configure (sikorski_data *conf)
+{
+    settings = conf;
+}
+
+sikorski_data* get_sikorski_settings_ptr (void)
+{
+    return settings;
+}
+
+#define X(type,name,code,printas,defaultval) bool name(const char * data);
+SIKORSKI_VAR_DATA
+#undef X
+bool set_limits (int index, const char *data);
+bool set_speeds (int index, const char *data);
+bool set_battlevels (int index, const char *data);
+
+void save_all_settings (void);
+
+// process a command from terminal.c. Only commands that start with '$' are directed here
+void settings_command (char *command)
+{
+    if (strncmp (command, "$$", 2) == 0)
+    {
+        print_all (&command[2]);
+        return;
+    }
+
+    if (strncmp (command, "$#", 2) == 0)
+    {
+        sikorski_set_defaults (settings);
+        return;
+    }
+
+    bool result = false;
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#define X(type,name,code,printas,defaultval) \
+		if (strncmp(command, #code , 2) == 0) \
+		{ 	result = name(&command[2]); \
+			commands_printf(#code " " #name " " #printas , settings->name ); \
+		}
+    SIKORSKI_VAR_DATA
+#undef X
+#pragma GCC diagnostic pop
+    if (strncmp (command, "$S", 2) == 0)
+    {
+        char in[2] = " ";
+        in[0] = command[2];
+        uint8_t index = atoi (in);
+        result = set_speeds (index - 1, &command[3]);
+        commands_printf ("$S%i speeds%i %i", index, index, settings->speeds[index - 1]);
+    }
+    if (strncmp (command, "$L", 2) == 0)
+    {
+        char in[2] = " ";
+        in[0] = command[2];
+        uint8_t index = atoi (in);
+        result = set_limits (index - 1, &command[3]);
+        commands_printf ("$L%i limits%i %0.2f", index, index, (double) settings->limits[index - 1]);
+    }
+    if (strncmp (command, "$B", 2) == 0)
+    {
+        char in[2] = " ";
+        in[0] = command[2];
+        uint8_t index = atoi (in);
+        result = set_battlevels (index - 1, &command[3]);
+        commands_printf ("$B%i levels%i %0.2f", index, index, (double) settings->battlevels[index - 1]);
+    }
+
+    if (result)
+        save_all_settings ();
+}
+
+void save_all_settings (void)
+{
+    // get the pointer to the configuration
+    const app_configuration *the_conf;
+    the_conf = app_get_configuration ();
+
+    // store the configuration to EEPROM
+    conf_general_store_app_configuration ((app_configuration*) the_conf);
+}
+
+void sikorski_set_defaults (sikorski_data *destination)
+{
+#define X(type,name,code,printas,defaultval) destination->name = defaultval;
+    SIKORSKI_VAR_DATA
+#undef X
+    destination->speeds[0] = SPEEDS1;
+    destination->speeds[1] = SPEEDS2;
+    destination->speeds[2] = SPEEDS3;
+    destination->speeds[3] = SPEEDS4;
+    destination->speeds[4] = SPEEDS5;
+    destination->speeds[5] = SPEEDS6;
+    destination->speeds[6] = SPEEDS7;
+    destination->speeds[7] = SPEEDS8;
+
+    destination->limits[0] = LIMITS1;
+    destination->limits[1] = LIMITS2;
+    destination->limits[2] = LIMITS3;
+    destination->limits[3] = LIMITS4;
+    destination->limits[4] = LIMITS5;
+    destination->limits[5] = LIMITS6;
+    destination->limits[6] = LIMITS7;
+    destination->limits[7] = LIMITS8;
+
+    destination->battlevels[0] = DISP_BATT_VOLT1;
+    destination->battlevels[1] = DISP_BATT_VOLT2;
+    destination->battlevels[2] = DISP_BATT_VOLT3;
+    destination->battlevels[3] = DISP_BATT_VOLT4;
+}
+
+void print_all (const char *data)
+{
+    (void) data;
+
+    commands_printf ("$$ DIVEX Settings:\n  ----------");
+    commands_printf ("$# (reset all)");
+
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#define X(type,name,code,printas,defaultval) \
+		commands_printf(#code " " #name " " #printas , settings->name );
+    SIKORSKI_VAR_DATA
+#undef X
+#pragma GCC diagnostic pop
+
+    int i;
+    for (i = 1; i < 9; i++)
+        commands_printf ("$S%i speeds%i %i", i, i, settings->speeds[i - 1]);
+    for (i = 1; i < 9; i++)
+        commands_printf ("$L%i limits%i %0.2f", i, i, (double) settings->limits[i - 1]);
+    for (i = 1; i < 5; i++)
+        commands_printf ("$B%i levels%i %0.2f", i, i, (double) settings->battlevels[i - 1]);
+    commands_printf ("    ----------  \n");
+}
+
+bool use_safety (const char *data)
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    settings->use_safety = i ? 1 : 0;
+    return true;
+}
+
+bool speed_default (const char *data)
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 1 || i > settings->max_speed)
+    {
+        commands_printf ("out of range. (See max_speed)\n");
+        return false;
+    }
+    settings->speed_default = i;
+    return true;
+}
+
+bool max_speed (const char *data)
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 1 || i > 8)
+    {
+        commands_printf ("out of range. (1-8)\n");
+        return false;
+    }
+    settings->max_speed = i;
+    return true;
+}
+
+bool trig_on_time (const char *data)
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 200 || i > 1200)
+    {
+        commands_printf ("out of range. (200-1200)\n");
+        return false;
+    }
+    settings->trig_on_time = i;
+    return true;
+}
+bool trig_off_time (const char *data)
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 200 || i > 1200)
+    {
+        commands_printf ("out of range. (200-1200)\n");
+        return false;
+    }
+    settings->trig_off_time = i;
+    return true;
+}
+bool ramping (const char *data)
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 200 || i > 10000)
+    {
+        commands_printf ("out of range. (200-10000)\n");
+        return false;
+    }
+    settings->ramping = i;
+    return true;
+}
+bool migrate_rate (const char *data)
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 500 || i > 1000000)
+    {
+        commands_printf ("out of range. (500-1000000)\n");
+        return false;
+    }
+    settings->migrate_rate = i;
+    return true;
+}
+bool guard_high (const char *data)
+{
+    float x;
+    int num = sscanf (data, "%f", &x);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (x < 0.5 || x > 2.5)
+    {
+        commands_printf ("out of range. (0.5 - 2.5)\n");
+        return false;
+    }
+    settings->guard_high = x;
+    return true;
+}
+bool guard_low (const char *data)
+{
+    float x;
+    int num = sscanf (data, "%f", &x);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (x < 0.5 || x > 2.5)
+    {
+        commands_printf ("out of range. (0.5 - 2.5)\n");
+        return false;
+    }
+    settings->guard_low = x;
+    return true;
+}
+bool safe_count (const char *data)
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 3 || i > 50)
+    {
+        commands_printf ("out of range. (3-50)\n");
+        return false;
+    }
+    settings->safe_count = i;
+    return true;
+}
+bool f_alpha (const char *data)
+{
+    float x;
+    int num = sscanf (data, "%f", &x);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (x < 0.001 || x > 0.5)
+    {
+        commands_printf ("out of range. (0.001 - 0.5)\n");
+        return false;
+    }
+    settings->f_alpha = x;
+    return true;
+}
+bool brightness (const char *data)
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 0 || i > 15)
+    {
+        commands_printf ("out of range. (0-15)\n");
+        return false;
+    }
+    settings->brightness = i;
+    return true;
+}
+bool power_off_ms (const char *data)
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 0 || i > 20000)
+    {
+        commands_printf ("out of range. (0-20000)\n");
+        return false;
+    }
+    settings->power_off_ms = i;
+    return true;
+}
+bool disp_beg_ms (const char *data)
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 0 || i > 6000)
+    {
+        commands_printf ("out of range. (0-6000)\n");
+        return false;
+    }
+    settings->disp_beg_ms = i;
+    return true;
+}
+bool disp_dur_ms (const char *data)
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 0 || i > 20000)
+    {
+        commands_printf ("out of range. (0-20000)\n");
+        return false;
+    }
+    settings->disp_dur_ms = i;
+    return true;
+}
+bool disp_on_ms (const char *data)
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 0 || i > 20000)
+    {
+        commands_printf ("out of range. (0-20000)\n");
+        return false;
+    }
+    settings->disp_on_ms = i;
+    return true;
+}
+bool set_speeds (int index, const char *data)
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 2000 || i > 6000)
+    {
+        commands_printf ("out of range. (2000-6000)\n");
+        return false;
+    }
+    settings->speeds[index] = i;
+    return true;
+}
+
+bool set_limits (int index, const char *data)
+{
+    float x;
+    int num = sscanf (data, "%f", &x);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (x < 1.0 || x > 30.0)
+    {
+        commands_printf ("out of range. (1.0-30.0)\n");
+        return false;
+    }
+    settings->limits[index] = x;
+    return true;
+}
+
+bool set_battlevels (int index, const char *data)
+{
+    float x;
+    int num = sscanf (data, "%f", &x);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (x < 32.0 || x > 42.0)
+    {
+        commands_printf ("out of range. (32.0 - 42.0)\n");
+        return false;
+    }
+    settings->battlevels[index] = x;
+    return true;
+}
+

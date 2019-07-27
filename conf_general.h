@@ -61,8 +61,8 @@
 //#define HW_SOURCE "hw_49.c"
 //#define HW_HEADER "hw_49.h"
 
-//#define HW_SOURCE "hw_410.c" // Also for 4.11 and 4.12
-//#define HW_HEADER "hw_410.h" // Also for 4.11 and 4.12
+#define HW_SOURCE "hw_410.c" // Also for 4.11 and 4.12
+#define HW_HEADER "hw_410.h" // Also for 4.11 and 4.12
 
 // Benjamins first HW60 PCB with PB5 and PB6 swapped
 //#define HW60_VEDDER_FIRST_PCB
@@ -70,8 +70,8 @@
 // Mark3 version of HW60 with power switch and separate NRF UART.
 //#define HW60_IS_MK3
 
-#define HW_SOURCE "hw_60.c"
-#define HW_HEADER "hw_60.h"
+//#define HW_SOURCE "hw_60.c"
+//#define HW_HEADER "hw_60.h"
 
 //#define HW_SOURCE "hw_r2.c"
 //#define HW_HEADER "hw_r2.h"
@@ -155,7 +155,6 @@
 //#include			"mcconf_castle_2028.h"
 //#include			"mcconf_ellwee.h"
 //#include			"conf_test.h"
-
 /*
  * Select default user app configuration
  */
@@ -171,8 +170,8 @@
 //#include "app_erockit_conf.h"
 
 #include "hw.h"
-#include "mcconf_default.h"
-#include "appconf_default.h"
+#include "mcconf_dxtras.h"
+#include "appconf_sikorski.h"
 
 /*
  * Enable blackmagic probe output on SWD port

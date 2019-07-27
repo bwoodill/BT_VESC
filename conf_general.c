@@ -32,6 +32,7 @@
 #include "app.h"
 #include "confgenerator.h"
 
+#include <applications/settings.h>
 #include <string.h>
 #include <math.h>
 
@@ -213,6 +214,7 @@ void conf_general_read_app_configuration(app_configuration *conf) {
 	// Set the default configuration
 	if (!is_ok) {
 		confgenerator_set_defaults_appconf(conf);
+		sikorski_set_defaults(&conf->app_divex_conf);
 	}
 }
 

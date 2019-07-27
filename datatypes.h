@@ -618,6 +618,8 @@ typedef enum {
 	CAN_MODE_COMM_BRIDGE
 } CAN_MODE;
 
+#include "applications/settings.h"
+
 typedef struct {
 	// Settings
 	uint8_t controller_id;
@@ -648,6 +650,9 @@ typedef struct {
 
 	// Nunchuk application settings
 	chuk_config app_chuk_conf;
+
+	// Nunchuk application settings
+	sikorski_data app_divex_conf;
 
 	// NRF application settings
 	nrf_config app_nrf_conf;
