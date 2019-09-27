@@ -439,6 +439,24 @@ bool disp_on_ms (const char *data)
     settings->disp_on_ms = i;
     return true;
 }
+bool logging(const char *data)
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 0 || i > 16)
+    {
+        commands_printf ("out of range. (0-16)\n");
+        return false;
+    }
+    settings->logging = i;
+    return true;
+}
+
 bool set_speeds (int index, const char *data)
 {
     int i;

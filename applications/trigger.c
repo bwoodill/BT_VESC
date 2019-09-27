@@ -36,11 +36,7 @@
 #include "speed.h" 	// thread handling the motor speed logic
 #include "trigger.h" // thread handling the trigger logic
 
-#if(TRIGGER_LOG)
-#   define TRIG_LOG(a) commands_printf a
-#else
-#   define TRIG_LOG(a) {}
-#endif
+#define TRIG_LOG(a) if(settings->logging & TRIGGER_LOG) commands_printf a
 
 #define QUEUE_SZ 4
 static msg_t msg_queue[QUEUE_SZ];

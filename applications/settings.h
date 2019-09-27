@@ -43,6 +43,7 @@ X (uint16_t, power_off_ms,  $p, %i,   DISP_POWER_ON_OFFTIME) \
 X (uint16_t, disp_beg_ms,   $f, %i,   DISP_OFF_TRIGGER_BEG_MS) \
 X (uint16_t, disp_dur_ms,   $D, %i,   DISP_OFF_TRIG_DURATION_MS) \
 X (uint16_t, disp_on_ms,    $n, %i,   DISP_ON_TRIGGER_SPEED_MS) \
+X (uint8_t,  logging,       $l, %02X, LOGGING_OFF) \
 
 
 typedef struct
@@ -66,9 +67,9 @@ void print_all (const char *data);
 void sikorski_set_defaults (sikorski_data *destination);
 
 // DEBUGGING SETTINGS
-#define SPEED_LOG 0
-#define SAFETY_LOG 1
-#define DISPLAY_LOG 0
-#define TRIGGER_LOG 0
+#define SPEED_LOG   1<<0
+#define SAFETY_LOG  1<<1
+#define DISPLAY_LOG 1<<2
+#define TRIGGER_LOG 1<<3
 
 #endif /* APPLICATIONS_SETTINGS_H_ */

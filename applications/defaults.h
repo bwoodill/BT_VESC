@@ -78,4 +78,7 @@
 #define DISP_OFF_TRIG_DURATION_MS 6000 // after OFF-TRIGGER, leave the display on for this time period
 #define DISP_ON_TRIGGER_SPEED_MS 3500 // after ON-TRIGGER, time that speed is shown
 
+// LOGGING
+#define LOGGING_OFF 0
+
 #endif /* APPLICATIONS_DIVEX_DEFAULTS_H_ */

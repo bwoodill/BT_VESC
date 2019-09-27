@@ -40,18 +40,6 @@
 #include "display.h"
 #include "speed.h"
 
-#if(SPEED_LOG)
-#   define SPED_LOG(a) commands_printf a
-#else
-#   define SPED_LOG(a) {}
-#endif
-
-#if(SAFETY_LOG)
-#   define SAFE_LOG(a) commands_printf a
-#else
-#   define SAFE_LOG(a) {}
-#endif
-
 #define QUEUE_SZ 4
 static msg_t msg_queue[QUEUE_SZ];
 mailbox_t speed_mbox;
@@ -60,6 +48,9 @@ static msg_t msg_queue2[QUEUE_SZ];
 mailbox_t ready_mbox;
 
 static sikorski_data *settings;
+
+#define SPED_LOG(a) if(settings->logging & SPEED_LOG) commands_printf a
+#define SAFE_LOG(a) if(settings->logging & SAFETY_LOG) commands_printf a
 
 typedef enum _motor_state
 {
