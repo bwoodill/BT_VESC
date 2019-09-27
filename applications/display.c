@@ -34,11 +34,7 @@
 #include "settings.h"
 #include "display.h"
 
-#if(DISPLAY_LOG)
-#   define DISP_LOG(a) commands_printf a
-#else
-#   define DISP_LOG(a) {}
-#endif
+#define DISP_LOG(a) if(settings->logging & DISPLAY_LOG) commands_printf a
 
 // Display thread
 static THD_FUNCTION(display_thread, arg);
