@@ -4,29 +4,33 @@ set -e
 FWPATH="../"
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
+VERSION="bins_AppVer"$(grep -o -e \#define.APP_VERSION.\"APP.VERSION.[0-9.]*  ../applications/app_version.h | grep -o -e[0-9.]*)
+
+rm $FWPATH/$VERSION -rf
+mkdir $FWPATH/$VERSION
 #################### HW 410 & 411 & 412 ########################
 
-COPYDIR=410_o_411_o_412
-rm -f $COPYDIR/*
+COPYDIR=$FWPATH/$VERSION/412
+mkdir $COPYDIR
 
 # default
 cd $FWPATH
 touch conf_general.h
 make -j8 build_args='-DHW_SOURCE=\"hw_410.c\" -DHW_HEADER=\"hw_410.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
-cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/
 
 #################### HW 60 ########################
 
-COPYDIR=60
-rm -f $COPYDIR/*
+COPYDIR=$FWPATH/$VERSION/60
+mkdir $COPYDIR
 
 # default
 cd $FWPATH
 touch conf_general.h
 make -j8 build_args='-DHW_SOURCE=\"hw_60.c\" -DHW_HEADER=\"hw_60.h\"' USE_VERBOSE_COMPILE=no
 cd $DIR
-cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR
+cp $FWPATH/build/BLDC_4_ChibiOS.bin $COPYDIR/
 
 # Clean
 cd $FWPATH
