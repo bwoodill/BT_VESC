@@ -2,5 +2,5 @@
 
 build
 build_all/*
-
+bins*/*
 .dep
