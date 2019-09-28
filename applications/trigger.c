@@ -33,6 +33,7 @@
 #include "commands.h"
 #include "terminal.h"
 #include "settings.h"
+#include "app_version.h"
 #include "speed.h" 	// thread handling the motor speed logic
 #include "trigger.h" // thread handling the trigger logic
 
@@ -133,6 +134,8 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
             }
             if (event == TIMER_EXPIRY)
             {
+                // report the application version
+                commands_printf(APP_VERSION);
                 state = SWST_ON;
                 timeout = TIME_INFINITE;
             }
