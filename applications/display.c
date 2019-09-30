@@ -1,25 +1,24 @@
 /*
-	Copyright 2019 Claroworks
+ Copyright 2019 Claroworks
 
-	This file is part of an application designed to work with VESC firmware,
-	and is intended for use with dive propulsion vehicles.
+ This file is part of an application designed to work with VESC firmware,
+ and is intended for use with dive propulsion vehicles.
 
-	This firmware is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+ This firmware is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
 
-    This firmware is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+ This firmware is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 // this supports HT16K33 LED display module
-
 #include "ch.h" // ChibiOS
 #include "hal.h" // ChibiOS HAL
 #include "mc_interface.h" // Motor control functions
@@ -44,7 +43,7 @@ static THD_WORKING_AREA(display_thread_wa, 1024); // small stack
 static msg_t msg_queue[QUEUE_SZ];
 mailbox_t display_mbox;
 
-static sikorski_data * settings;
+static sikorski_data *settings;
 
 // Start the display thread
 void display_init ()
@@ -113,6 +112,21 @@ void display_battery_graph (float volts)
     }
 }
 
+void display_speed (MESSAGE speed)
+{
+    int new_speed = speed - DISP_SPEED_1 + 1;
+    GFX_setRotation (1);
+    GFX_setTextSize (1);
+    GFX_setTextColor (LED_ON);
+    LED_clear ();
+    GFX_setCursor (1, 0);
+    char text[2] =
+        { '0' + new_speed, '\0' };
+    GFX_print_str (text);
+    LED_writeDisplay ();
+    DISP_LOG(("Write '%s'", text));
+}
+
 #define DISP_RATE 2
 typedef enum _disp_state
 {
@@ -144,7 +158,7 @@ static THD_FUNCTION(display_thread, arg)
 
     // Delay this task starting so that settings are updated
     fetch = chMBFetch (&display_mbox, (msg_t*) &event, MS2ST(500/*mSec*/));
-    settings = get_sikorski_settings_ptr();
+    settings = get_sikorski_settings_ptr ();
 
     // clear display & then display voltage meter
     LED_clear ();
@@ -194,17 +208,7 @@ static THD_FUNCTION(display_thread, arg)
         case DISP_SPEED:				// enter this state when "on trigger" - motor is running
             if (event >= DISP_SPEED_1 && event <= DISP_SPEED_9) // don't handle above speed 9, rewrite as needed to support...
             {
-                int new_speed = event - DISP_SPEED_1 + 1;
-                GFX_setRotation (1);
-                GFX_setTextSize (1);
-                GFX_setTextColor (LED_ON);
-                LED_clear ();
-                GFX_setCursor (1, 0);
-                char text[2] =
-                    { '0' + new_speed, '\0' };
-                GFX_print_str (text);
-                LED_writeDisplay ();
-                DISP_LOG(("Write '%s'", text));
+                display_speed (event);
                 timeout = MS2ST(settings->disp_on_ms);
                 break;
             }
@@ -229,6 +233,13 @@ static THD_FUNCTION(display_thread, arg)
             break;
 
         case DISP_OFF:                // After displaying speed, go IDLE.
+            if (event >= DISP_SPEED_1 && event <= DISP_SPEED_9) // don't handle above speed 9, rewrite as needed to support...
+            {
+                state = DISP_SPEED;
+                display_speed (event);
+                timeout = MS2ST(settings->disp_on_ms);
+                break;
+            }
             switch (event)
             {
             case DISP_OFF_TRIGGER: 	// rcvd when the motor turns off - start the display cycle by showing the 'waiting' display
