@@ -43,6 +43,7 @@ X (uint16_t, power_off_ms,  $p, %i,   DISP_POWER_ON_OFFTIME) \
 X (uint16_t, disp_beg_ms,   $f, %i,   DISP_OFF_TRIGGER_BEG_MS) \
 X (uint16_t, disp_dur_ms,   $D, %i,   DISP_OFF_TRIG_DURATION_MS) \
 X (uint16_t, disp_on_ms,    $n, %i,   DISP_ON_TRIGGER_SPEED_MS) \
+X (float,    batt_imbalance,$b, %0.2f,BATTERY_MAX_IMBALANCE) \
 X (uint8_t,  logging,       $l, %02X, LOGGING_OFF) \
 
 
