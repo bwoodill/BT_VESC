@@ -439,6 +439,23 @@ bool disp_on_ms (const char *data)
     settings->disp_on_ms = i;
     return true;
 }
+bool batt_imbalance (const char *data)
+{
+    float x;
+    int num = sscanf (data, "%f", &x);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (x < 0.25 || x > 2.0)
+    {
+        commands_printf ("out of range. (0.25 - 2.0)\n");
+        return false;
+    }
+    settings->batt_imbalance = x;
+    return true;
+}
 bool logging(const char *data)
 {
     int i;

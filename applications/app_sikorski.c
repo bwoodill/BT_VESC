@@ -27,6 +27,7 @@
 #include "timeout.h" // To reset the timeout
 #include <stddef.h>
 
+#include "settings.h"
 #include "display.h" // for displaying the battery status
 #include "trigger.h" // thread handling the trigger logic
 #include "speed.h" 	 // thread handling the motor speed logic
@@ -37,6 +38,7 @@ const char* message_text (MESSAGE msg_type)
     return messages[(int) msg_type - MESSAGES_BASE];
 }
 
+static sikorski_data *settings;
 // Switch thread
 static THD_FUNCTION(switch_thread, arg);
 static THD_WORKING_AREA(switch_thread_wa, 1024); // small stack
@@ -66,6 +68,8 @@ static THD_FUNCTION(switch_thread, arg) // @suppress("No return")
     chRegSetThreadName ("SWITCH");
     static uint8_t sw = 0;
     bool trigger_pressed = false;
+    chThdSleepMilliseconds(500);   // sleep long enough for settings to be set by init functions
+    settings = get_sikorski_settings_ptr ();
 
     for (;;)
     {
