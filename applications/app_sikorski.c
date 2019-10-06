@@ -39,6 +39,8 @@ const char* message_text (MESSAGE msg_type)
 }
 
 static sikorski_data *settings;
+MESSAGE check_batteries (void);
+
 // Switch thread
 static THD_FUNCTION(switch_thread, arg);
 static THD_WORKING_AREA(switch_thread_wa, 1024); // small stack
@@ -61,6 +63,44 @@ void app_sikorski_init (void)
     display_init ();
 }
 
+MESSAGE check_batteries (void)
+{
+    // (battery1 (top) + battery2) is read by normal VESC firmware.
+    // battery 2 (bottom) voltage is read here
+
+    #define CHECK_COUNTS 200  // 5 seconds based on 40Hz calling rate
+
+    #define K 1000
+    #define V2_Rtop     141*K
+    #define V2_Rbottom  10*K
+
+    static float batt_1,batt_total;
+    static int count = 0;
+
+    batt_1 += ((V_REG / 4095.0) * (float) ADC_Value[ADC_IND_EXT] * ((V2_Rtop + V2_Rbottom) / V2_Rbottom));
+    batt_total += GET_INPUT_VOLTAGE();
+
+    count = (count + 1) % CHECK_COUNTS;
+    if (count)
+        return NO_MSG;
+
+    // count rolled over. Now average the results
+    float batt1 = batt_1 / CHECK_COUNTS;
+    float batt2 = (batt_total - batt_1) / CHECK_COUNTS;
+
+    batt_1 = batt_total = 0.0;
+
+    if (batt1 - batt2 > settings->batt_imbalance)
+    {
+        return BATT_2_TOOLOW;
+    }
+    else if(batt2 - batt1 > settings->batt_imbalance)
+    {
+        return BATT_1_TOOLOW;
+    }
+    return NO_MSG;
+}
+
 static THD_FUNCTION(switch_thread, arg) // @suppress("No return")
 {
     (void) arg;
@@ -68,12 +108,14 @@ static THD_FUNCTION(switch_thread, arg) // @suppress("No return")
     chRegSetThreadName ("SWITCH");
     static uint8_t sw = 0;
     bool trigger_pressed = false;
+    MESSAGE batt_msg = NO_MSG;
+
     chThdSleepMilliseconds(500);   // sleep long enough for settings to be set by init functions
     settings = get_sikorski_settings_ptr ();
 
     for (;;)
     {
-    	trigger_pressed = palReadPad(HW_ICU_GPIO, HW_ICU_PIN);
+        trigger_pressed = palReadPad(HW_ICU_GPIO, HW_ICU_PIN);
         if (trigger_pressed)
         {
             if (sw == 0) // debounce
@@ -87,7 +129,13 @@ static THD_FUNCTION(switch_thread, arg) // @suppress("No return")
             sw = 0;
         }
 
-        // Run this loop at 40Hz
+        batt_msg = check_batteries();
+        if(batt_msg != NO_MSG)
+        {
+            send_to_something(batt_msg);
+        }
+
+        // Run this loop at 40Hz - timing isn't critical
         chThdSleepMilliseconds(1000 / 40.0);
 
         // Reset the timeout

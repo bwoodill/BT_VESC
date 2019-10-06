@@ -27,6 +27,7 @@
 
 typedef enum _msgs
 {
+    NO_MSG = 0,
     TIMER_EXPIRY = MESSAGES_BASE,	// used when message fetch times out. Used as a general purpose timer event.
 
     // Messages sent to the trigger thread
@@ -62,6 +63,10 @@ typedef enum _msgs
     DISP_SPEED_D,
     DISP_SPEED_E,
     DISP_SPEED_F,
+
+    // battery condition messages
+    BATT_1_TOOLOW,
+    BATT_2_TOOLOW,
 
     MESSAGE_EOL,
 } MESSAGE;
