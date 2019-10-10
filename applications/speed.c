@@ -57,11 +57,12 @@ typedef enum _motor_state
     MOTOR_OFF = 0,		// motor not running
     MOTOR_ON,			// motor running
     MOTOR_START,		// test for obstruction
+    MOTOR_KILLED,       // permanent motor off (battery dead)
     MOTOR_EOL
 } MOTOR_STATE;
 
 const char *const motor_states[] =
-    { "MOTOR_OFF", "MOTOR_ON", "MOTOR_START" };
+    { "MOTOR_OFF", "MOTOR_ON", "MOTOR_START", "MOTOR_KILLED"};
 
 static THD_FUNCTION(speed_thread, arg);
 static THD_WORKING_AREA(speed_thread_wa, 2048);
@@ -248,6 +249,11 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                     send_to_display (DISP_SPEED_1 + user_speed);
                 }
                 break;
+            case SPEED_KILL:
+                state = MOTOR_KILLED;
+                timeout = TIME_INFINITE;
+                adjust_speed (user_speed, MODE_OFF);
+                break;
             case TIMER_EXPIRY:
                 timeout = migrate (&user_speed) ? TIME_INFINITE : MS2ST(settings->migrate_rate);
                 break;
@@ -276,12 +282,17 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                 send_to_display (DISP_SPEED_1 + user_speed);
                 timeout = MS2ST(RAMPING_TIME_MS);
                 break;
+            case SPEED_KILL:
+                state = MOTOR_KILLED;
+                timeout = TIME_INFINITE;
+                adjust_speed (user_speed, MODE_OFF);
+                break;
             case TIMER_EXPIRY: // runs often while ramping
                 present_speed = adjust_speed (user_speed, MODE_RUN);    // ramping is taken care of in this function
                 if (present_speed == settings->speeds[user_speed])
                     timeout = TIME_INFINITE;
-                else timeout = MS2ST(RAMPING_TIME_MS);
-
+                else
+                    timeout = MS2ST(RAMPING_TIME_MS);
                 break;
             default:
                 break;
@@ -305,9 +316,16 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                 send_to_display (DISP_SPEED_1 + user_speed);
                 timeout = MS2ST(RAMPING_TIME_MS); // start running this thread fast to achieve ramping.
                 break;
+            case SPEED_KILL:
+                state = MOTOR_KILLED;
+                timeout = TIME_INFINITE;
+                adjust_speed (user_speed, MODE_OFF);
+                break;
             default:
                 break;
             }
+            break;
+        case MOTOR_KILLED:
             break;
         default:
             break;

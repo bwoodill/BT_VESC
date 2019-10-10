@@ -79,7 +79,7 @@
 #define DISP_ON_TRIGGER_SPEED_MS 3500 // after ON-TRIGGER, time that speed is shown
 
 // BATTERY IMBALANCE
-#define BATTERY_MAX_IMBALANCE 1.0 // Volts that batteries are allowed to be different, to disallow overdischarge
+#define BATTERY_MAX_IMBALANCE 1.5 // Volts that batteries are allowed to be different, to disallow overdischarge
 
 // LOGGING
 #define LOGGING_OFF 0

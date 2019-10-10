@@ -27,6 +27,7 @@
 #include "timeout.h" // To reset the timeout
 #include <stddef.h>
 
+#include "commands.h"
 #include "settings.h"
 #include "display.h" // for displaying the battery status
 #include "trigger.h" // thread handling the trigger logic
@@ -38,8 +39,11 @@ const char* message_text (MESSAGE msg_type)
     return messages[(int) msg_type - MESSAGES_BASE];
 }
 
+#define DISP_LOG(a) if(settings->logging & DISPLAY_LOG) commands_printf a
+
+
 static sikorski_data *settings;
-MESSAGE check_batteries (void);
+void check_batteries (void);
 
 // Switch thread
 static THD_FUNCTION(switch_thread, arg);
@@ -138,11 +142,7 @@ static THD_FUNCTION(switch_thread, arg) // @suppress("No return")
             sw = 0;
         }
 
-        batt_msg = check_batteries();
-        if(batt_msg != NO_MSG)
-        {
-            send_to_something(batt_msg);
-        }
+        check_batteries();
 
         // Run this loop at 40Hz - timing isn't critical
         chThdSleepMilliseconds(1000 / 40.0);
