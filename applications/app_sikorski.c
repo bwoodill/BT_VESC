@@ -63,16 +63,20 @@ void app_sikorski_init (void)
     display_init ();
 }
 
-MESSAGE check_batteries (void)
+// This checks the for the situation where there is an imbalance in the
+// battery charge between two batteries. In this case we want to indicate
+// to the user which one needs is defective, and stop discharging by
+// turning off the motor.
+void check_batteries (void)
 {
     // (battery1 (top) + battery2) is read by normal VESC firmware.
     // battery 2 (bottom) voltage is read here
 
-    #define CHECK_COUNTS 200  // 5 seconds based on 40Hz calling rate
+    #define CHECK_COUNTS 600  // 15 seconds based on 40Hz calling rate
 
-    #define K 1000
-    #define V2_Rtop     141*K
-    #define V2_Rbottom  10*K
+    #define K 1000.0
+    #define V2_Rtop     (147*K)
+    #define V2_Rbottom  (10*K)
 
     static float batt_1,batt_total;
     static int count = 0;
@@ -80,25 +84,31 @@ MESSAGE check_batteries (void)
     batt_1 += ((V_REG / 4095.0) * (float) ADC_Value[ADC_IND_EXT] * ((V2_Rtop + V2_Rbottom) / V2_Rbottom));
     batt_total += GET_INPUT_VOLTAGE();
 
+    // calculate an average after so many counts (count == 0)
     count = (count + 1) % CHECK_COUNTS;
     if (count)
-        return NO_MSG;
+        return;
 
     // count rolled over. Now average the results
-    float batt1 = batt_1 / CHECK_COUNTS;
-    float batt2 = (batt_total - batt_1) / CHECK_COUNTS;
+    float batt1 = batt_1 / (float) CHECK_COUNTS;
+    float batt2 = (batt_total - batt_1) / (float) CHECK_COUNTS;
 
-    batt_1 = batt_total = 0.0;
+
+    batt_1 = batt_total = 0.0; // reset the totals
+
+    DISP_LOG(("TOTAL = %2.2f  BATT1 = %2.2f  BATT2 = %2.2f", (double) GET_INPUT_VOLTAGE(), (double) batt1, (double) batt2 ));
+
 
     if (batt1 - batt2 > settings->batt_imbalance)
     {
-        return BATT_2_TOOLOW;
+        send_to_display(BATT_2_TOOLOW);
+        send_to_speed(SPEED_KILL);
     }
     else if(batt2 - batt1 > settings->batt_imbalance)
     {
-        return BATT_1_TOOLOW;
+        send_to_display(BATT_1_TOOLOW);
+        send_to_speed(SPEED_KILL);
     }
-    return NO_MSG;
 }
 
 static THD_FUNCTION(switch_thread, arg) // @suppress("No return")
@@ -108,7 +118,6 @@ static THD_FUNCTION(switch_thread, arg) // @suppress("No return")
     chRegSetThreadName ("SWITCH");
     static uint8_t sw = 0;
     bool trigger_pressed = false;
-    MESSAGE batt_msg = NO_MSG;
 
     chThdSleepMilliseconds(500);   // sleep long enough for settings to be set by init functions
     settings = get_sikorski_settings_ptr ();
