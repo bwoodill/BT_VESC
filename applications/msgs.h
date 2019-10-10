@@ -40,6 +40,7 @@ typedef enum _msgs
     SPEED_UP,
     SPEED_DOWN,
     SPEED_READY,	// from the READY thread - notifies that scooter is ready to run
+    SPEED_KILL,     // from the SIKORSKI thread - turn the motor off until reset (i.e. forever)
 
     // commands the ready task to run or cease
     READY_OFF,
@@ -75,12 +76,13 @@ extern const char* message_text (MESSAGE msg_type);
 #define MESSAGES_TEXT {\
 	"TIMER_EXPIRY", \
 	"SW_RELEASED", "SW_PRESSED", \
-	"SPEED_OFF", "SPEED_ON", "SPEED_UP", "SPEED_DOWN", "SPEED_READY", \
+	"SPEED_OFF", "SPEED_ON", "SPEED_UP", "SPEED_DOWN", "SPEED_READY", "SPEED_KILL", \
 	"READY_OFF", "READY_ON", \
 	"DISP_ON_TRIGGER", "DISP_OFF_TRIGGER", \
     "DISP_SPEED_1", "DISP_SPEED_2", "DISP_SPEED_3", "DISP_SPEED_4", "DISP_SPEED_5", \
     "DISP_SPEED_6", "DISP_SPEED_7", "DISP_SPEED_8", "DISP_SPEED_9", "DISP_SPEED_A", \
-    "DISP_SPEED_B", "DISP_SPEED_C", "DISP_SPEED_D", "DISP_SPEED_E", "DISP_SPEED_F" \
+    "DISP_SPEED_B", "DISP_SPEED_C", "DISP_SPEED_D", "DISP_SPEED_E", "DISP_SPEED_F", \
+    "BATT_1_TOOLOW", "BATT_2_TOOLOW", \
 }
 
 #endif /* APPLICATIONS_MSGS_H_ */

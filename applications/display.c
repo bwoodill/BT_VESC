@@ -100,10 +100,13 @@ void display_battery_graph (float volts)
         LED_blinkRate (HT16K33_BLINK_1HZ);
         return;
     }
+    // loop through the voltage levels in the lookup table
     for (size_t i = 0; i < sizeof(settings->battlevels); i++)
     {
         if (volts > settings->battlevels[i])
             continue;
+        // when actual battery voltage is lower than the table setting
+        // display 'i' bars
         if (i == 0)
             display_flashing = true;
         show_bargraph4 (i);
@@ -177,14 +180,15 @@ typedef enum _disp_state
     DISP_ON,		// display is showing battery
     DISP_WAIT,		// display is showing 'wait for it'
     DISP_SPEED,     // displaying the speed number
+    DISP_BATTLOW,   // Battery too low - display low battery (forever)
     DISP_PWR_ON
 } DISP_STATE;
 
 const char *const disp_states[] =
-    { "DISP_OFF", "DISP_ON", "DISP_WAIT", "DISP_SPEED", "DISP_PWR_ON" };
+    { "DISP_OFF", "DISP_ON", "DISP_WAIT", "DISP_SPEED", "DISP_BATTLOW", "DISP_PWR_ON" };
 
-static THD_FUNCTION(display_thread, arg)
-{ // @suppress("No return")
+static THD_FUNCTION(display_thread, arg) // @suppress("No return")
+{
     (void) arg;
 
     chRegSetThreadName ("I2C_DISPLAY");
@@ -242,6 +246,11 @@ static THD_FUNCTION(display_thread, arg)
             case DISP_ON_TRIGGER:   // rcvd when the motor turns on
                 state = DISP_SPEED;
                 break;
+            case BATT_1_TOOLOW:
+            case BATT_2_TOOLOW:
+                state = DISP_BATTLOW;
+                display_battery_low(event);
+                break;
             default:
                 volts = GET_INPUT_VOLTAGE();
                 display_battery_graph (volts);
@@ -270,6 +279,11 @@ static THD_FUNCTION(display_thread, arg)
                 state = DISP_WAIT;
                 dot_pos = 0;
                 break;
+            case BATT_1_TOOLOW:
+            case BATT_2_TOOLOW:
+                state = DISP_BATTLOW;
+                display_battery_low(event);
+                break;
             default:
                 break;
             }
@@ -294,6 +308,11 @@ static THD_FUNCTION(display_thread, arg)
                 break;
             case DISP_ON_TRIGGER:   // rcvd when the motor turns on
                 state = DISP_SPEED;
+                break;
+            case BATT_1_TOOLOW:
+            case BATT_2_TOOLOW:
+                state = DISP_BATTLOW;
+                display_battery_low(event);
                 break;
             default:
                 break;
@@ -323,6 +342,11 @@ static THD_FUNCTION(display_thread, arg)
                 dot_pos++;
                 LED_writeDisplay ();
                 break;
+            case BATT_1_TOOLOW:
+            case BATT_2_TOOLOW:
+                state = DISP_BATTLOW;
+                display_battery_low(event);
+                break;
             default:
                 break;
             }
@@ -342,9 +366,16 @@ static THD_FUNCTION(display_thread, arg)
                 timeout = TIME_INFINITE;
                 state = DISP_OFF;
                 break;
+            case BATT_1_TOOLOW:
+            case BATT_2_TOOLOW:
+                state = DISP_BATTLOW;
+                display_battery_low(event);
+                break;
             default:
                 break;
             }
+            break;
+        case DISP_BATTLOW:
             break;
         default:
             break;
