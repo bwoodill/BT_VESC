@@ -112,6 +112,49 @@ void display_battery_graph (float volts)
     }
 }
 
+// This battery low condition occurs when there is an imbalance in the
+// battery charge between two batteries. In this case we want to indicate
+// to the user which one needs is defective.
+void display_battery_low(int32_t event)
+{
+    DISP_LOG(("BATTERY IMBALANCE!"));
+    // always show a single bar
+    show_bargraph4 (0);
+
+    // always flash the display.
+    LED_blinkRate (HT16K33_BLINK_1HZ);
+
+/*  0 1 2 3 4 5 6 7  X        0 1 2 3 4 5 6 7  X
+ 0  - X - - - - - -        0  X X - - - - - -
+ 1  X X - - - - - -        1  - X - - - - - -
+ 2  - X - - - - - -        2  X - - - - - - -
+ 3  - X - - - - - -        3  X X - - - - - -
+ 4  - - - - - - - -        4  - - - - - - - -
+ 5  - - - - - - - -        5  - - - - - - - -
+ 6  X X - - - - - -        6  X X - - - - - -
+ 7  X X - - - - - -        7  X X - - - - - -
+ Y        1                Y         2
+*/
+
+    switch (event)
+    {
+    case BATT_1_TOOLOW: // display a small '1'
+        GFX_drawBlk  (1, 0, 1, 4);
+        LED_drawPixel(0, 1, LED_ON);
+        DISP_LOG(("Displaying '1'"));
+        break;
+    case BATT_2_TOOLOW: // display a small '2'
+        GFX_drawBlk  (0, 0, 2, 4);
+        LED_drawPixel(0, 1, LED_OFF);
+        LED_drawPixel(1, 2, LED_OFF);
+        DISP_LOG(("Displaying '2'"));
+        break;
+    default:
+        break;
+    }
+    LED_writeDisplay ();
+}
+
 void display_speed (MESSAGE speed)
 {
     int new_speed = speed - DISP_SPEED_1 + 1;
