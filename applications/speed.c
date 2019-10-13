@@ -36,6 +36,7 @@
 #include "commands.h"
 #include "terminal.h"
 
+#include "batteries.h"
 #include "settings.h"
 #include "display.h"
 #include "speed.h"
@@ -248,6 +249,7 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                     send_to_display (DISP_SPEED_1 + user_speed);
                 }
                 break;
+            case CHECK_BATTERY:
                 break;
             case TIMER_EXPIRY:
                 timeout = migrate (&user_speed) ? TIME_INFINITE : MS2ST(settings->migrate_rate);
@@ -277,6 +279,7 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                 send_to_display (DISP_SPEED_1 + user_speed);
                 timeout = MS2ST(RAMPING_TIME_MS);
                 break;
+            case CHECK_BATTERY:
                 break;
             case TIMER_EXPIRY: // runs often while ramping
                 present_speed = adjust_speed (user_speed, MODE_RUN);    // ramping is taken care of in this function
@@ -307,6 +310,7 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                 send_to_display (DISP_SPEED_1 + user_speed);
                 timeout = MS2ST(RAMPING_TIME_MS); // start running this thread fast to achieve ramping.
                 break;
+            case CHECK_BATTERY:
                 break;
             default:
                 break;

@@ -32,6 +32,7 @@
 #include "terminal.h"
 #include "settings.h"
 #include "display.h"
+#include "batteries.h"
 
 #define DISP_LOG(a) if(settings->logging & DISPLAY_LOG) commands_printf a
 
@@ -128,14 +129,14 @@ void display_battery_low(int32_t event)
     LED_blinkRate (HT16K33_BLINK_1HZ);
 
 /*  0 1 2 3 4 5 6 7  X        0 1 2 3 4 5 6 7  X
- 0  - X - - - - - -        0  X X - - - - - -
- 1  X X - - - - - -        1  - X - - - - - -
- 2  - X - - - - - -        2  X - - - - - - -
- 3  - X - - - - - -        3  X X - - - - - -
- 4  - - - - - - - -        4  - - - - - - - -
- 5  - - - - - - - -        5  - - - - - - - -
- 6  X X - - - - - -        6  X X - - - - - -
- 7  X X - - - - - -        7  X X - - - - - -
+ 0  - X - - - - : :        0  X X - - - - - -
+ 1  X X - - - - : :        1  - X - - - - - -
+ 2  - X - - : : : :        2  X - - - - - - -
+ 3  - X - - : : : :        3  X X - - - - - -
+ 4  - - : : : : : :        4  - - - - - - - -
+ 5  - - : : : : : :        5  - - - - - - - -
+ 6  : : : : : : : :        6  - - - - - - - -
+ 7  : : : : : : : :        7  - - - - - - - -
  Y        1                Y         2
 */
 

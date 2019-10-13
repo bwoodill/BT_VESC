@@ -32,6 +32,7 @@
 #include "display.h" // for displaying the battery status
 #include "trigger.h" // thread handling the trigger logic
 #include "speed.h" 	 // thread handling the motor speed logic
+#include "batteries.h"
 
 const char* message_text (MESSAGE msg_type)
 {
