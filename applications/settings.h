@@ -25,7 +25,10 @@
 
 #include <stdint.h>
 
+//Size of tables
+#define MAX_SPEED_SETTING 8
 #define BATT_LEVELS 4
+
 #define SIKORSKI_VAR_DATA \
 /* type      name          $code printas default value */ \
 X (uint8_t,  speed_default, $d, %i,   SPEED_DEFAULT) \
@@ -56,9 +59,9 @@ typedef struct
 #define X(type,name,code,printas,defaultval) type name;
     SIKORSKI_VAR_DATA
 #undef X
-    float limits[8];
-    uint16_t speeds[8];
-    float battlevels[4];
+    float limits[MAX_SPEED_SETTING];
+    uint16_t speeds[MAX_SPEED_SETTING];
+    float battlevels[BATT_LEVELS];
 } sikorski_data;
 
 void app_sikorski_configure (sikorski_data *conf);
