@@ -320,6 +320,57 @@ bool guard_low (const char *data)
     settings->guard_low = x;
     return true;
 }
+bool guard_limit(const char *data)
+{
+    float x;
+    int num = sscanf (data, "%f", &x);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (x < 0.15 || x > 1.0)
+    {
+        commands_printf ("out of range. (0.15 - 1.0)\n");
+        return false;
+    }
+    settings->guard_limit = x;
+    return true;
+}
+bool guard_erpm (const char *data)
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 300 || i > 1200)
+    {
+        commands_printf ("out of range. (300-1200)\n");
+        return false;
+    }
+    settings->guard_erpm = i;
+    return true;
+}
+bool guard_max_erpm(const char *data)
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 600 || i > 2000)
+    {
+        commands_printf ("out of range. (600-2000)\n");
+        return false;
+    }
+    settings->guard_erpm = i;
+    return true;
+}
 bool safe_count (const char *data)
 {
     int i;
