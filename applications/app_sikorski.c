@@ -106,12 +106,10 @@ void check_batteries (void)
     if (batt1 - batt2 > settings->batt_imbalance)
     {
         send_to_display(BATT_2_TOOLOW);
-        send_to_speed(SPEED_KILL);
     }
     else if(batt2 - batt1 > settings->batt_imbalance)
     {
         send_to_display(BATT_1_TOOLOW);
-        send_to_speed(SPEED_KILL);
     }
 }
 
@@ -124,7 +122,7 @@ static THD_FUNCTION(switch_thread, arg) // @suppress("No return")
     bool trigger_pressed = false;
 
     chThdSleepMilliseconds(500);   // sleep long enough for settings to be set by init functions
-    settings = get_sikorski_settings_ptr ();
+    settings = get_sikorski_settings_ptr();
 
     for (;;)
     {

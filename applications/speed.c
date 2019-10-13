@@ -57,12 +57,11 @@ typedef enum _motor_state
     MOTOR_OFF = 0,		// motor not running
     MOTOR_ON,			// motor running
     MOTOR_START,		// test for obstruction
-    MOTOR_KILLED,       // permanent motor off (battery dead)
     MOTOR_EOL
 } MOTOR_STATE;
 
 const char *const motor_states[] =
-    { "MOTOR_OFF", "MOTOR_ON", "MOTOR_START", "MOTOR_KILLED"};
+    { "MOTOR_OFF", "MOTOR_ON", "MOTOR_START"};
 
 static THD_FUNCTION(speed_thread, arg);
 static THD_WORKING_AREA(speed_thread_wa, 2048);
@@ -182,13 +181,13 @@ static float adjust_speed (uint8_t user_setting, RUN_MODES mode)
         mc_interface_set_pid_speed (present_speed);
         set_max_current (settings->limits[user_setting]);
     }
-    // @formatter:off
+
     #if(SPEED_LOG == 1)
         const char *const mode_str[] = { "OFF", "RUN", "START" };
     #endif
     SPED_LOG(("MODE=%.5s present=%4.2f, programmed=%4.2f",
             mode_str[(int) mode], (double) present_speed, (double) settings->speeds[user_setting]));
-    // @formatter:on
+
 return    present_speed;
 }
 
@@ -249,10 +248,6 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                     send_to_display (DISP_SPEED_1 + user_speed);
                 }
                 break;
-            case SPEED_KILL:
-                state = MOTOR_KILLED;
-                timeout = TIME_INFINITE;
-                adjust_speed (user_speed, MODE_OFF);
                 break;
             case TIMER_EXPIRY:
                 timeout = migrate (&user_speed) ? TIME_INFINITE : MS2ST(settings->migrate_rate);
@@ -282,10 +277,6 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                 send_to_display (DISP_SPEED_1 + user_speed);
                 timeout = MS2ST(RAMPING_TIME_MS);
                 break;
-            case SPEED_KILL:
-                state = MOTOR_KILLED;
-                timeout = TIME_INFINITE;
-                adjust_speed (user_speed, MODE_OFF);
                 break;
             case TIMER_EXPIRY: // runs often while ramping
                 present_speed = adjust_speed (user_speed, MODE_RUN);    // ramping is taken care of in this function
@@ -316,16 +307,10 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                 send_to_display (DISP_SPEED_1 + user_speed);
                 timeout = MS2ST(RAMPING_TIME_MS); // start running this thread fast to achieve ramping.
                 break;
-            case SPEED_KILL:
-                state = MOTOR_KILLED;
-                timeout = TIME_INFINITE;
-                adjust_speed (user_speed, MODE_OFF);
                 break;
             default:
                 break;
             }
-            break;
-        case MOTOR_KILLED:
             break;
         default:
             break;
@@ -337,6 +322,7 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
 }
 
 /*------------ LPF Object -----------------*/
+// LOW PASS FILTER (Leaky Integrator)
 typedef struct _lpf_context
 {
     float y;
