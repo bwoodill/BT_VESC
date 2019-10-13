@@ -49,9 +49,12 @@ void check_batteries (void);
 // Switch thread
 static THD_FUNCTION(switch_thread, arg);
 static THD_WORKING_AREA(switch_thread_wa, 1024); // small stack
+static mutex_t batt_mutex;
 
 void app_sikorski_init (void)
 {
+    chMtxObjectInit(&batt_mutex);
+
     // Set the SERVO pin as an input with pullup
     palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_INPUT_PULLUP);
 
@@ -68,50 +71,69 @@ void app_sikorski_init (void)
     display_init ();
 }
 
-// This checks the for the situation where there is an imbalance in the
-// battery charge between two batteries. In this case we want to indicate
-// to the user which one needs is defective, and stop discharging by
-// turning off the motor.
+
+static float batteries[2];
+
+float get_lowest_battery_voltage(void)
+{
+    float batt_volts[2];
+
+    chMtxLock(&batt_mutex);
+    { // LOCKED CONTEXT
+        batt_volts[0] = batteries[0];
+        batt_volts[1] = batteries[1];
+    }
+    chMtxUnlock(&batt_mutex);
+
+    // return the smallest value
+    if (batt_volts[0] < batt_volts[1])
+    {
+        return batt_volts[0];
+    }
+    return batt_volts[1];
+}
+
 void check_batteries (void)
 {
     // (battery1 (top) + battery2) is read by normal VESC firmware.
-    // battery 2 (bottom) voltage is read here
+    // battery 2 (bottom) voltage is read here directly
 
-    #define CHECK_COUNTS 600  // 15 seconds based on 40Hz calling rate
-
-    #define K 1000.0
-    #define V2_Rtop     (147*K)
-    #define V2_Rbottom  (10*K)
-
-    static float batt_1,batt_total;
+    static float batt_2,batt_total;
     static int count = 0;
 
-    batt_1 += ((V_REG / 4095.0) * (float) ADC_Value[ADC_IND_EXT] * ((V2_Rtop + V2_Rbottom) / V2_Rbottom));
+    batt_2 += ((V_REG / 4095.0) * (float) ADC_Value[ADC_IND_EXT] * ((V2_Rtop + V2_Rbottom) / V2_Rbottom));
     batt_total += GET_INPUT_VOLTAGE();
 
     // calculate an average after so many counts (count == 0)
-    count = (count + 1) % CHECK_COUNTS;
+    count = (count + 1) % BATTERY_CHECK_COUNTS;
     if (count)
         return;
 
     // count rolled over. Now average the results
-    float batt1 = batt_1 / (float) CHECK_COUNTS;
-    float batt2 = (batt_total - batt_1) / (float) CHECK_COUNTS;
+    chMtxLock(&batt_mutex); // protect multiple access
+    { // LOCKED CONTEXT
+        batteries[1] = batt_2 / (float) BATTERY_CHECK_COUNTS;
+        batteries[0] = (batt_total - batt_2) / (float) BATTERY_CHECK_COUNTS;
 
+        batt_2 = batt_total = 0.0; // reset the totals
 
-    batt_1 = batt_total = 0.0; // reset the totals
+        DISP_LOG(("TOTAL = %2.2f  BATT1 = %2.2f  BATT2 = %2.2f",
+                (double) GET_INPUT_VOLTAGE(), (double) batteries[0], (double) batteries[1] ));
 
-    DISP_LOG(("TOTAL = %2.2f  BATT1 = %2.2f  BATT2 = %2.2f", (double) GET_INPUT_VOLTAGE(), (double) batt1, (double) batt2 ));
-
-
-    if (batt1 - batt2 > settings->batt_imbalance)
-    {
-        send_to_display(BATT_2_TOOLOW);
+        if (batteries[0] - batteries[1] > settings->batt_imbalance)
+        {
+            send_to_display(BATT_2_TOOLOW);
+        }
+        else if(batteries[1] - batteries[0] > settings->batt_imbalance)
+        {
+            send_to_display(BATT_1_TOOLOW);
+        }
+        else
+        {   // this acts a periodic timer so that the speed control will have battery updates
+            send_to_speed(CHECK_BATTERY);
+        }
     }
-    else if(batt2 - batt1 > settings->batt_imbalance)
-    {
-        send_to_display(BATT_1_TOOLOW);
-    }
+    chMtxUnlock(&batt_mutex);
 }
 
 static THD_FUNCTION(switch_thread, arg) // @suppress("No return")

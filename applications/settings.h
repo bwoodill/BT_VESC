@@ -25,6 +25,7 @@
 
 #include <stdint.h>
 
+#define BATT_LEVELS 4
 #define SIKORSKI_VAR_DATA \
 /* type      name          $code printas default value */ \
 X (uint8_t,  speed_default, $d, %i,   SPEED_DEFAULT) \

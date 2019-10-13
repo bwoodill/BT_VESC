@@ -89,31 +89,32 @@ void show_bargraph4 (uint8_t bars /* 0 - 3 */)
     LED_writeDisplay ();
 }
 
-void display_battery_graph (float volts)
-{	// Choose the bar graph symbol to show based on battery voltage
-// if the battery is low, flash the display.
+void display_battery_graph (bool initial)
+{
 
-    static bool display_flashing = false;
-
-    if (display_flashing)
+    float pack_level;
+    if (initial)
     {
-        show_bargraph4 (0);
-        LED_blinkRate (HT16K33_BLINK_1HZ);
-        return;
+        pack_level = GET_INPUT_VOLTAGE();
+    }
+    else
+    {
+        // Choose the bar graph symbol to show based on battery voltage
+        // base on lowest battery, but settings are for 2 batteries
+        pack_level = get_lowest_battery_voltage() * 2.0;
     }
     // loop through the voltage levels in the lookup table
-    for (size_t i = 0; i < sizeof(settings->battlevels); i++)
+    for (int i = BATT_LEVELS-1; i >= 0; i--)
     {
-        if (volts > settings->battlevels[i])
-            continue;
-        // when actual battery voltage is lower than the table setting
-        // display 'i' bars
-        if (i == 0)
-            display_flashing = true;
-        show_bargraph4 (i);
-        LED_blinkRate (HT16K33_BLINK_OFF);
-        return;
+        if (pack_level > settings->battlevels[i])
+        {
+            LED_blinkRate (HT16K33_BLINK_OFF);
+            show_bargraph4 (i);
+            return;
+        }
     }
+    LED_blinkRate (HT16K33_BLINK_1HZ);
+    show_bargraph4 (0);
 }
 
 // This battery low condition occurs when there is an imbalance in the
@@ -205,13 +206,12 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
     int32_t event = TIMER_EXPIRY;
 
     // Delay this task starting so that settings are updated
-    fetch = chMBFetch (&display_mbox, (msg_t*) &event, MS2ST(500/*mSec*/));
+    chThdSleepMilliseconds(500);   // sleep long enough for settings to be set by init functions
     settings = get_sikorski_settings_ptr ();
 
     // clear display & then display voltage meter
     LED_clear ();
-    float volts = GET_INPUT_VOLTAGE();
-    display_battery_graph (volts);
+    display_battery_graph(true);
     LED_writeDisplay ();
 
     // used during DISP_WAIT to track the dot position
@@ -253,8 +253,7 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
                 display_battery_low(event);
                 break;
             default:
-                volts = GET_INPUT_VOLTAGE();
-                display_battery_graph (volts);
+                display_battery_graph(false);
                 break;
             }
             break;
@@ -334,8 +333,7 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
                 {	// setup and go to DISP_ON state
                     timeout = MS2ST(settings->disp_dur_ms);
                     state = DISP_ON;
-                    volts = GET_INPUT_VOLTAGE();
-                    display_battery_graph (volts);
+                    display_battery_graph(false);
                     break;
                 }
                 LED_clear ();
