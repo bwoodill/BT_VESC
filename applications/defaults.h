@@ -29,9 +29,6 @@
 #define TRIG_ON_TOUT_MS 400			// click timeout when trigger is on
 #define TRIG_OFF_TOUT_MS 500		// click timeout when trigger is off
 
-// Speed settings for user speeds
-#define MAX_SPEED_SETTING 8
-
 // speed when user goes on trigger the first time
 #define SPEED_DEFAULT 3
 
