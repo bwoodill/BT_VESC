@@ -73,21 +73,8 @@ void GFX_drawBlk (int16_t x, int16_t y, int16_t w, int16_t h)
     }
 }
 
-void show_bargraph4 (uint8_t bars /* 0 - 3 */)
-{	// Display a bar graph, up to 4 bars.
-    GFX_setRotation (1);
-    LED_clear ();	// clear display
-
-    /* always */GFX_drawBlk (0, 6, 2, 2);
-    if (bars > 0)
-        GFX_drawBlk (2, 4, 2, 4);
-    if (bars > 1)
-        GFX_drawBlk (4, 2, 2, 6);
-    if (bars > 2)
-        GFX_drawBlk (6, 0, 2, 8);
-
-    LED_writeDisplay ();
-}
+typedef enum _imbalance {IMBALANCE_NONE, IMBALANCE_BATT1, IMBALANCE_BATT2}IMBALANCE;
+static uint8_t batt_imbalance = IMBALANCE_NONE;  // 0 = no imbalance
 
 void display_battery_graph (bool initial)
 {
@@ -104,59 +91,57 @@ void display_battery_graph (bool initial)
         pack_level = get_lowest_battery_voltage() * 2.0;
     }
     // loop through the voltage levels in the lookup table
-    for (int i = BATT_LEVELS-1; i >= 0; i--)
+    int bars;
+    for (bars = BATT_LEVELS-1; bars >= 0; bars--)
     {
-        if (pack_level > settings->battlevels[i])
+        if (pack_level > settings->battlevels[bars])
         {
             LED_blinkRate (HT16K33_BLINK_OFF);
-            show_bargraph4 (i);
-            return;
+            break;
         }
     }
-    LED_blinkRate (HT16K33_BLINK_1HZ);
-    show_bargraph4 (0);
-}
+    if (bars==0)
+        LED_blinkRate (HT16K33_BLINK_1HZ);
 
-// This battery low condition occurs when there is an imbalance in the
-// battery charge between two batteries. In this case we want to indicate
-// to the user which one needs is defective.
-void display_battery_low(int32_t event)
-{
-    DISP_LOG(("BATTERY IMBALANCE!"));
-    // always show a single bar
-    show_bargraph4 (0);
+    // Display a bar graph, up to 4 bars.
+    GFX_setRotation (1);
+    LED_clear ();   // clear display
 
-    // always flash the display.
-    LED_blinkRate (HT16K33_BLINK_1HZ);
+    /* always */    GFX_drawBlk (0, 6, 2, 2);
+    if (bars > 0)   GFX_drawBlk (2, 4, 2, 4);
+    if (bars > 1)   GFX_drawBlk (4, 2, 2, 6);
+    if (bars > 2)   GFX_drawBlk (6, 0, 2, 8);
 
-/*  0 1 2 3 4 5 6 7  X        0 1 2 3 4 5 6 7  X
- 0  - X - - - - : :        0  X X - - - - - -
- 1  X X - - - - : :        1  - X - - - - - -
- 2  - X - - : : : :        2  X - - - - - - -
- 3  - X - - : : : :        3  X X - - - - - -
- 4  - - : : : : : :        4  - - - - - - - -
- 5  - - : : : : : :        5  - - - - - - - -
- 6  : : : : : : : :        6  - - - - - - - -
- 7  : : : : : : : :        7  - - - - - - - -
- Y        1                Y         2
-*/
+    // When there is an imbalance in the battery charge between two batteries,
+    // indicate to the user which one is defective.
 
-    switch (event)
+    /*  0 1 2 3 4 5 6 7  X        0 1 2 3 4 5 6 7  X
+     0  - X - - - - : :        0  X X - - - - - -
+     1  X X - - - - : :        1  - X - - - - - -
+     2  - X - - : : : :        2  X - - - - - - -
+     3  - X - - : : : :        3  X X - - - - - -
+     4  - - : : : : : :        4  - - - - - - - -
+     5  - - : : : : : :        5  - - - - - - - -
+     6  : : : : : : : :        6  - - - - - - - -
+     7  : : : : : : : :        7  - - - - - - - -
+     Y        1                Y         2
+    */
+
+    if (batt_imbalance == IMBALANCE_BATT1) // display a small '1'
     {
-    case BATT_1_TOOLOW: // display a small '1'
         GFX_drawBlk  (1, 0, 1, 4);
         LED_drawPixel(0, 1, LED_ON);
         DISP_LOG(("Displaying '1'"));
-        break;
-    case BATT_2_TOOLOW: // display a small '2'
+    }
+
+    if (batt_imbalance == IMBALANCE_BATT2) // display a small '2'
+    {
         GFX_drawBlk  (0, 0, 2, 4);
         LED_drawPixel(0, 1, LED_OFF);
         LED_drawPixel(1, 2, LED_OFF);
         DISP_LOG(("Displaying '2'"));
-        break;
-    default:
-        break;
     }
+
     LED_writeDisplay ();
 }
 
@@ -188,6 +173,17 @@ typedef enum _disp_state
 
 const char *const disp_states[] =
     { "DISP_OFF", "DISP_ON", "DISP_WAIT", "DISP_SPEED", "DISP_BATTLOW", "DISP_PWR_ON" };
+
+void display_idle(void)
+{
+    if(batt_imbalance)
+        display_battery_graph(false);
+    else
+    {
+        LED_clear ();   // clear display
+        LED_writeDisplay ();
+    }
+}
 
 static THD_FUNCTION(display_thread, arg) // @suppress("No return")
 {
@@ -233,24 +229,27 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
 
         DISP_STATE old_state = state;
 
+        if(event == BATT_1_TOOLOW)
+        {
+            batt_imbalance = IMBALANCE_BATT1;
+        }
+        if(event == BATT_2_TOOLOW)
+        {
+            batt_imbalance = IMBALANCE_BATT2;
+        }
+
         switch (state)
         {
         case DISP_PWR_ON:
             switch (event)
             {
             case TIMER_EXPIRY:
-                LED_clear ();	// clear display
-                LED_writeDisplay ();
+                display_idle();
                 timeout = TIME_INFINITE;
                 state = DISP_OFF;
                 break;
             case DISP_ON_TRIGGER:   // rcvd when the motor turns on
                 state = DISP_SPEED;
-                break;
-            case BATT_1_TOOLOW:
-            case BATT_2_TOOLOW:
-                state = DISP_BATTLOW;
-                display_battery_low(event);
                 break;
             default:
                 display_battery_graph(false);
@@ -267,22 +266,15 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
             switch (event)
             {
             case TIMER_EXPIRY:
-                LED_clear ();   // clear display
-                LED_writeDisplay ();
+                display_idle();
                 timeout = TIME_INFINITE;
                 state = DISP_OFF;
                 break;
             case DISP_OFF_TRIGGER: 	// rcvd when the motor turns off - start the display cycle by showing the 'waiting' display
-                LED_clear ();	// clear display
-                LED_writeDisplay ();
+                display_idle();
                 timeout = MS2ST(settings->disp_beg_ms / 24);	// 8 dots in waiting progression
                 state = DISP_WAIT;
                 dot_pos = 0;
-                break;
-            case BATT_1_TOOLOW:
-            case BATT_2_TOOLOW:
-                state = DISP_BATTLOW;
-                display_battery_low(event);
                 break;
             default:
                 break;
@@ -300,19 +292,13 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
             switch (event)
             {
             case DISP_OFF_TRIGGER: 	// rcvd when the motor turns off - start the display cycle by showing the 'waiting' display
-                LED_clear ();	// clear display
-                LED_writeDisplay ();
+                display_idle();
                 timeout = MS2ST(settings->disp_beg_ms / 24);	// 8 dots in waiting progression
                 state = DISP_WAIT;
                 dot_pos = 0;
                 break;
             case DISP_ON_TRIGGER:   // rcvd when the motor turns on
                 state = DISP_SPEED;
-                break;
-            case BATT_1_TOOLOW:
-            case BATT_2_TOOLOW:
-                state = DISP_BATTLOW;
-                display_battery_low(event);
                 break;
             default:
                 break;
@@ -341,11 +327,6 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
                 dot_pos++;
                 LED_writeDisplay ();
                 break;
-            case BATT_1_TOOLOW:
-            case BATT_2_TOOLOW:
-                state = DISP_BATTLOW;
-                display_battery_low(event);
-                break;
             default:
                 break;
             }
@@ -354,21 +335,14 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
             switch (event)
             {
             case DISP_ON_TRIGGER: 	// rcvd when the motor turns on
-                LED_clear ();	// clear display
-                LED_writeDisplay ();
+                display_idle();
                 timeout = TIME_INFINITE;
                 state = DISP_SPEED;
                 break;
             case TIMER_EXPIRY:
-                LED_clear ();	// clear display
-                LED_writeDisplay ();
+                display_idle();
                 timeout = TIME_INFINITE;
                 state = DISP_OFF;
-                break;
-            case BATT_1_TOOLOW:
-            case BATT_2_TOOLOW:
-                state = DISP_BATTLOW;
-                display_battery_low(event);
                 break;
             default:
                 break;
