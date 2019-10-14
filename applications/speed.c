@@ -150,37 +150,91 @@ static void set_max_current (float max_current)
     conf->lo_in_current_max = max_current;
 }
 
+// this limits the motor attempting to 'catch up' with it's programmed position when
+// it gets blocked (especially in safety mode), otherwise it lurches up attempting to recover
+static void set_max_ERPM (float max_ERPM)
+{
+    mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
+    conf->l_max_erpm = max_ERPM;
+}
+
 typedef enum _run_modes
 {
     MODE_OFF, MODE_RUN, MODE_START
 } RUN_MODES;
 
+// given the desired speed, use the battery voltage to determine
+// if the speed should be limited. Limit the speed relative
+// to the battery voltage in the case where the display shows 1 bar.
+static float limit_speed_by_battery(float speed)
+{
+    float lowest_battery = get_lowest_battery_voltage();
+
+    const float batt_cutoff = 29.0 / 2.0;
+    float batt_low = settings->battlevels[0] / 2.0;
+    const int ERPM_range[2] = {1000,3000}; // range of ERPM
+
+    SPED_LOG(("cutoff=%2.2f batt=%2.2f low=%2.2f",
+                    (double) batt_cutoff, (double) lowest_battery, (double) batt_low));
+    if(lowest_battery > batt_low)
+        return speed;   // no need to limit speed
+
+    // if really dead, disable the motor. (although this is redundant -
+    // the motor should be disabled by the motor control code as well)
+    if(lowest_battery <= batt_cutoff)
+        return 0.0;
+
+    // the batteries are 'low'. so limit the speed based on battery voltage
+    // within the ERPM_range. Create formula needed in form  y=mx+b
+    // to compute the limited speed
+
+    // m = dY/dX:
+    float m = (ERPM_range[1] - ERPM_range[0]) / (batt_low - batt_cutoff);
+
+    // solve for b: b = y0 - m * x0
+    float b = ERPM_range[0] - (m * batt_cutoff);
+
+    // apply formula to look up the appropriate speed for this voltage
+    float limited_speed = (lowest_battery * m) + b;
+    SPED_LOG(("speed=%4.2f, limited=%4.2f by batt=%2.2f (2x)",
+                (double) speed, (double) limited_speed, (double) (lowest_battery * 2.0)));
+
+    return limited_speed;
+}
+
 // adjust the speed including ramping, and return true if the ramping is complete.
 static float adjust_speed (uint8_t user_setting, RUN_MODES mode)
 {
     static float present_speed = 0.0;      // speed that motor is set to.
-    const float SAFE_SPEED = 600.0;
 
     if (mode == MODE_OFF)
     {
         present_speed = 0.0;
         mc_interface_release_motor ();
-        set_max_current (settings->limits[0]);
+        set_max_current(settings->limits[0]);
         return present_speed;
     }
     else if (mode == MODE_START)
     {
-        set_max_current (settings->guard_high);
-        present_speed = SAFE_SPEED;
+        set_max_current(settings->guard_limit);
+        present_speed = settings->guard_erpm;
+        set_max_ERPM(settings->guard_max_erpm);
         mc_interface_set_pid_speed (present_speed);
         return present_speed;
     }
-    else
+    else // mode == MODE_RUN
     {
-        // mode == MODE_RUN
+        #define RUNNING_MAX_ERPM  1000000 // MAX ERPM when running is just large and unrestrained.
+        set_max_ERPM(RUNNING_MAX_ERPM);
+        set_max_current(settings->limits[user_setting]);
+
+        // ramp from the present speed toward the desired speed from user setting
         present_speed = ramping (present_speed, settings->speeds[user_setting]);
+
+        // speed may be limited by battery state
+        present_speed = limit_speed_by_battery(present_speed);
+
         mc_interface_set_pid_speed (present_speed);
-        set_max_current (settings->limits[user_setting]);
     }
 
     #if(SPEED_LOG == 1)
@@ -280,6 +334,7 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                 timeout = MS2ST(RAMPING_TIME_MS);
                 break;
             case CHECK_BATTERY:
+                adjust_speed (user_speed, MODE_RUN);
                 break;
             case TIMER_EXPIRY: // runs often while ramping
                 present_speed = adjust_speed (user_speed, MODE_RUN);    // ramping is taken care of in this function
@@ -311,6 +366,7 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                 timeout = MS2ST(RAMPING_TIME_MS); // start running this thread fast to achieve ramping.
                 break;
             case CHECK_BATTERY:
+                adjust_speed (user_speed, MODE_START);
                 break;
             default:
                 break;
