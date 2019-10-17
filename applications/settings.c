@@ -30,6 +30,7 @@
 #include "datatypes.h"
 #include "app.h"
 #include "defaults.h"
+#include "app_version.h"
 
 static sikorski_data *settings;
 
@@ -166,7 +167,7 @@ void print_all (const char *data)
         commands_printf ("$L%i limits%i %0.2f", i, i, (double) settings->limits[i - 1]);
     for (i = 1; i < 5; i++)
         commands_printf ("$B%i levels%i %0.2f", i, i, (double) settings->battlevels[i - 1]);
-    commands_printf ("    ----------  \n");
+    commands_printf ("    ---- %s ----", APP_VERSION);
 }
 
 bool use_safety (const char *data)

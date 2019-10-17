@@ -88,7 +88,8 @@ endif
 ##############################################################################
 # Project, sources and paths
 #
-
+# grep "APP_VERSION " applications/app_version.h | grep -o [0-9\.]*
+#
 # Define project name here
 PROJECT = BLDC_4_ChibiOS
 
