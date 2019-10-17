@@ -26,7 +26,7 @@
 #define BATTERY_CHECK_COUNTS 200  // 5 seconds based on 40Hz calling rate
 
 #define K 1000.0
-#define V2_Rtop     (147*K) // (141*K)
+#define V2_Rtop     (141*K) // (147*K)
 #define V2_Rbottom  (10*K)
 
 
