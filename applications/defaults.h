@@ -53,7 +53,7 @@
 #define LIMITS8 28.219
 
 // BATTERY DISPLAY (PER DISPLAYED BAR)
-#define DISP_BATT_VOLT1	32.0
+#define DISP_BATT_VOLT1	32.0    // this has a special purpose - motor speed is limited below this value AND we always show one bar
 #define DISP_BATT_VOLT2	34.0
 #define DISP_BATT_VOLT3	36.0
 #define DISP_BATT_VOLT4	38.0

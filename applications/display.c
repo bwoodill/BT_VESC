@@ -90,27 +90,36 @@ void display_battery_graph (bool initial)
         // base on lowest battery, but settings are for 2 batteries
         pack_level = get_lowest_battery_voltage() * 2.0;
     }
-    // loop through the voltage levels in the lookup table
-    int bars;
-    for (bars = BATT_LEVELS-1; bars >= 0; bars--)
-    {
-        if (pack_level > settings->battlevels[bars])
-        {
-            LED_blinkRate (HT16K33_BLINK_OFF);
-            break;
-        }
-    }
-    if (bars==0)
-        LED_blinkRate (HT16K33_BLINK_1HZ);
+
+    // keep track of what blink rate is chosen
+    uint8_t blink = HT16K33_BLINK_1HZ;
 
     // Display a bar graph, up to 4 bars.
+
     GFX_setRotation (1);
     LED_clear ();   // clear display
 
-    /* always */    GFX_drawBlk (0, 6, 2, 2);
-    if (bars > 0)   GFX_drawBlk (2, 4, 2, 4);
-    if (bars > 1)   GFX_drawBlk (4, 2, 2, 6);
-    if (bars > 2)   GFX_drawBlk (6, 0, 2, 8);
+    // hard-coded checks was more straight forward and readable than a loop.
+
+    /* always turn on bar 1 */
+    GFX_drawBlk (0, 6, 2, 2);
+
+    // ignore settings->battlevels[0] (on purpose) - it turns out it isn't needed
+    if (pack_level > settings->battlevels[1])
+    {
+        GFX_drawBlk (2, 4, 2, 4);
+        blink = HT16K33_BLINK_OFF;  // 2 bars or better, don't blink LEDs
+    }
+    if (pack_level > settings->battlevels[2])
+    {
+        GFX_drawBlk (4, 2, 2, 6);
+    }
+    if (pack_level > settings->battlevels[3])
+    {
+        GFX_drawBlk (6, 0, 2, 8);
+    }
+
+    LED_blinkRate (blink);
 
     // When there is an imbalance in the battery charge between two batteries,
     // indicate to the user which one is defective.
@@ -167,12 +176,11 @@ typedef enum _disp_state
     DISP_ON,		// display is showing battery
     DISP_WAIT,		// display is showing 'wait for it'
     DISP_SPEED,     // displaying the speed number
-    DISP_BATTLOW,   // Battery too low - display low battery (forever)
     DISP_PWR_ON
 } DISP_STATE;
 
 const char *const disp_states[] =
-    { "DISP_OFF", "DISP_ON", "DISP_WAIT", "DISP_SPEED", "DISP_BATTLOW", "DISP_PWR_ON" };
+    { "DISP_OFF", "DISP_ON", "DISP_WAIT", "DISP_SPEED", "DISP_PWR_ON" };
 
 void display_idle(void)
 {
@@ -347,8 +355,6 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
             default:
                 break;
             }
-            break;
-        case DISP_BATTLOW:
             break;
         default:
             break;

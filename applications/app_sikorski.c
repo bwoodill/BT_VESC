@@ -117,8 +117,8 @@ void check_batteries (void)
 
         batt_2 = batt_total = 0.0; // reset the totals
 
-        //DISP_LOG(("TOTAL = %2.2f  BATT1 = %2.2f  BATT2 = %2.2f",
-        //    (double) GET_INPUT_VOLTAGE(), (double) batteries[0], (double) batteries[1] ));
+        DISP_LOG(("TOTAL = %2.2f  BATT1 = %2.2f  BATT2 = %2.2f",
+            (double) GET_INPUT_VOLTAGE(), (double) batteries[0], (double) batteries[1] ));
 
         if (batteries[0] - batteries[1] > settings->batt_imbalance)
         {
