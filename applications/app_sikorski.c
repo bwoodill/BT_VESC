@@ -128,9 +128,6 @@ void check_batteries (void)
         {
             send_to_display(BATT_1_TOOLOW);
         }
-
-        // this acts a periodic timer so that the speed control will have battery updates
-        send_to_speed(CHECK_BATTERY);
     }
     chMtxUnlock(&batt_mutex);
 }
