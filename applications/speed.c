@@ -126,6 +126,7 @@ static bool migrate (uint8_t *speed)		// Programmed speed migrates toward the de
 }
 
 #define RAMPING_TIME_MS 50.0 // mS - 20 times per second
+#define CHECK_BATTERY_PERIOD_MS 5000 // check the battery every 5 seconds while running
 
 // return next speed to send, ramping from the current speed
 // toward the programmed speed.
@@ -218,6 +219,7 @@ static float adjust_speed (uint8_t user_setting, RUN_MODES mode)
     {
         set_max_current(settings->guard_limit);
         present_speed = settings->guard_erpm;
+        present_speed = limit_speed_by_battery(present_speed);
         set_max_ERPM(settings->guard_max_erpm);
         mc_interface_set_pid_speed (present_speed);
         return present_speed;
@@ -246,6 +248,14 @@ static float adjust_speed (uint8_t user_setting, RUN_MODES mode)
 return    present_speed;
 }
 
+// timeout value (used as a timeout service)
+static systime_t speed_timeout = TIME_INFINITE; // timeout in ticks. Use MS2ST(milliseconds) to set the value in milliseconds
+static void set_timeout(systime_t new_period)
+{
+    speed_timeout = new_period;
+    SPED_LOG(("TIMEOUT = %f", ((double)ST2MS(new_period))/(double)1000.0 ));
+}
+
 static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
 {
     (void) arg;
@@ -256,9 +266,6 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
 
     // the message retrieved from the mailbox
     msg_t fetch = MSG_OK;
-
-    // timeout value (used as a timeout service)
-    systime_t timeout = TIME_INFINITE; // timeout in ticks. Use MS2ST(milliseconds) to set the value in milliseconds
 
     int32_t event = SPEED_OFF;
 
@@ -273,7 +280,7 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
     for (;;)
     {
 
-        fetch = chMBFetch (&speed_mbox, (msg_t*) &event, timeout);
+        fetch = chMBFetch (&speed_mbox, (msg_t*) &event, speed_timeout);
         if (fetch == MSG_TIMEOUT)
             event = TIMER_EXPIRY;
 
@@ -296,7 +303,7 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                 else
                 {
                     state = MOTOR_ON;
-                    timeout = MS2ST(RAMPING_TIME_MS); // start running this thread fast to achieve ramping.
+                    set_timeout(MS2ST(RAMPING_TIME_MS)); // start running this thread fast to achieve ramping.
 
                     // start ramping up to the first speed.
                     adjust_speed (user_speed, MODE_RUN);
@@ -306,7 +313,7 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
             case CHECK_BATTERY:
                 break;
             case TIMER_EXPIRY:
-                timeout = migrate (&user_speed) ? TIME_INFINITE : MS2ST(settings->migrate_rate);
+                set_timeout(migrate (&user_speed) ? TIME_INFINITE : MS2ST(settings->migrate_rate));
                 break;
             default:
                 break;
@@ -318,20 +325,20 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
             case SPEED_OFF:
                 state = MOTOR_OFF;
                 send_to_display (DISP_OFF_TRIGGER);
-                timeout = MS2ST(settings->migrate_rate);
+                set_timeout(MS2ST(settings->migrate_rate));
                 adjust_speed (user_speed, MODE_OFF);
                 break;
             case SPEED_UP:
                 increase (&user_speed);
                 adjust_speed (user_speed, MODE_RUN);
                 send_to_display (DISP_SPEED_1 + user_speed);
-                timeout = MS2ST(RAMPING_TIME_MS);
+                set_timeout(MS2ST(RAMPING_TIME_MS));
                 break;
             case SPEED_DOWN:
                 decrease (&user_speed);
                 adjust_speed (user_speed, MODE_RUN);
                 send_to_display (DISP_SPEED_1 + user_speed);
-                timeout = MS2ST(RAMPING_TIME_MS);
+                set_timeout(MS2ST(RAMPING_TIME_MS));
                 break;
             case CHECK_BATTERY:
                 adjust_speed (user_speed, MODE_RUN);
@@ -339,9 +346,9 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
             case TIMER_EXPIRY: // runs often while ramping
                 present_speed = adjust_speed (user_speed, MODE_RUN);    // ramping is taken care of in this function
                 if (present_speed == settings->speeds[user_speed])
-                    timeout = TIME_INFINITE;
+                    set_timeout(MS2ST(CHECK_BATTERY_PERIOD_MS));
                 else
-                    timeout = MS2ST(RAMPING_TIME_MS);
+                    set_timeout(MS2ST(RAMPING_TIME_MS));
                 break;
             default:
                 break;
@@ -353,7 +360,7 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
             case SPEED_OFF:		// user gave up and turned motor off.
                 state = MOTOR_OFF;
                 send_to_display (DISP_OFF_TRIGGER);
-                timeout = MS2ST(settings->migrate_rate);
+                set_timeout(MS2ST(settings->migrate_rate));
                 adjust_speed (user_speed, MODE_OFF);
                 send_to_ready (READY_OFF);		// don't need to check for start any more
                 break;
@@ -363,7 +370,7 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                 adjust_speed (user_speed, MODE_RUN);
                 send_to_display (DISP_ON_TRIGGER);
                 send_to_display (DISP_SPEED_1 + user_speed);
-                timeout = MS2ST(RAMPING_TIME_MS); // start running this thread fast to achieve ramping.
+                set_timeout(MS2ST(RAMPING_TIME_MS)); // start running this thread fast to achieve ramping.
                 break;
             case CHECK_BATTERY:
                 adjust_speed (user_speed, MODE_START);
@@ -417,7 +424,7 @@ static THD_FUNCTION(motor_ready_thread, arg) // @suppress("No return")
     // speed thread that it is safe to run full speed
 
     // timeout value (used as a timeout service)
-    systime_t timeout = TIME_INFINITE; // timeout in ticks. Use MS2ST(milliseconds) to set the value in milliseconds
+    systime_t ready_timeout = TIME_INFINITE; // timeout in ticks. Use MS2ST(milliseconds) to set the value in milliseconds
 
     // read the motor current, and see if the blades are unobstructed and the scooter is in water
     float motor_amps = 0.0;
@@ -430,7 +437,7 @@ static THD_FUNCTION(motor_ready_thread, arg) // @suppress("No return")
 
     for (;;)
     {
-        fetch = chMBFetch (&ready_mbox, (msg_t*) &event, timeout);
+        fetch = chMBFetch (&ready_mbox, (msg_t*) &event, ready_timeout);
         if (fetch == MSG_TIMEOUT)
             event = TIMER_EXPIRY;
 
@@ -438,13 +445,13 @@ static THD_FUNCTION(motor_ready_thread, arg) // @suppress("No return")
         {
         case READY_ON:
             adjust_speed (0, MODE_START);
-            timeout = MS2ST(RAMPING_TIME_MS);	// 50 mS = 20Hz
+            ready_timeout = MS2ST(RAMPING_TIME_MS);	// 50 mS = 20Hz
             running_safe_ct = 0;
             lpf_init (&lpfy, settings->f_alpha, 1.0);
             break;
 
         case READY_OFF:
-            timeout = TIME_INFINITE;	// turn task 'OFF', until turned on again.
+            ready_timeout = TIME_INFINITE;	// turn task 'OFF', until turned on again.
             running_safe_ct = 0;
             break;
 
@@ -460,7 +467,7 @@ static THD_FUNCTION(motor_ready_thread, arg) // @suppress("No return")
                 if (running_safe_ct > settings->safe_count)
                 {
                     send_to_speed (SPEED_READY);
-                    timeout = TIME_INFINITE;
+                    ready_timeout = TIME_INFINITE;
                 }
             }
             SAFE_LOG(("SAFETY: Amps: %f, %f (%i)", (double) motor_amps, (double) filtered, running_safe_ct));
