@@ -63,11 +63,11 @@
 #define MIGRATE_SPEED_MILLISECONDS 10000 // time period to change speeds during off-trigger toward SPEED_DEFAULT
 
 // SAFETY SPEED SETTINGS
-#define SAFETY_SPEED_GUARD_HIGH 2.5 // Amps. Currents above this indicate an obstruction
+#define SAFETY_SPEED_GUARD_HIGH 3.5 // Amps. Currents above this indicate an obstruction
 #define SAFETY_SPEED_GUARD_LOW  1.7 // Amps. Currents below this indicate running out-of-water
 #define SAFETY_SPEED_BI_LIMIT   0.25 // Amps. Battery current limit while in guard mode.
-#define SAFETY_SPEED_ERPM       600  // running ERPM while in guard mode.
-#define SAFETY_SPEED_MAX_ERPM   1000 // maximum ERPM in guard mode, when it tries to catch up as it becomes unblocked
+#define SAFETY_SPEED_ERPM       900  // running ERPM while in guard mode.
+#define SAFETY_SPEED_MAX_ERPM   1500 // maximum ERPM in guard mode, when it tries to catch up as it becomes unblocked
 
 #define RUNNING_SAFE_OK_CT 	20		// count at 20Hz at which we will confirm running in water with no obstructions
 #define SAFETY_FILTER_ALPHA 0.2

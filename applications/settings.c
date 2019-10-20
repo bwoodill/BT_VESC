@@ -296,9 +296,9 @@ bool guard_high (const char *data)
         commands_printf ("invalid input.\n");
         return false;
     }
-    if (x < 0.5 || x > 2.5)
+    if (x < 0.5 || x > 4.5)
     {
-        commands_printf ("out of range. (0.5 - 2.5)\n");
+        commands_printf ("out of range. (0.5 - 4.5)\n");
         return false;
     }
     settings->guard_high = x;
