@@ -22,7 +22,7 @@
 #define MCCONF_L_CURRENT_MIN -56
 
 // Battery Current Max
-#define MCCONF_L_IN_CURRENT_MAX 1.34
+#define MCCONF_L_IN_CURRENT_MAX 0.25
 
 // Battery Current Max Regen
 #define MCCONF_L_IN_CURRENT_MIN -1
@@ -34,7 +34,7 @@
 #define MCCONF_L_RPM_MIN -100000
 
 // Max ERPM
-#define MCCONF_L_RPM_MAX 100000
+#define MCCONF_L_RPM_MAX 1500
 
 // ERPM Limit Start
 #define MCCONF_L_RPM_START 0.8
@@ -76,7 +76,7 @@
 #define MCCONF_L_LIM_TEMP_ACCEL_DEC 0.15
 
 // Minimum Duty Cycle
-#define MCCONF_L_MIN_DUTY 0.005
+#define MCCONF_L_MIN_DUTY 0.001
 
 // Maximum Duty Cycle
 #define MCCONF_L_MAX_DUTY 0.95
@@ -103,7 +103,7 @@
 #define MCCONF_SL_MAX_FB_CURR_DIR_CHANGE 10
 
 // Cycle Integrator Limit
-#define MCCONF_SL_CYCLE_INT_LIMIT 413.98
+#define MCCONF_SL_CYCLE_INT_LIMIT 390
 
 // Phase Advance at BR ERPM
 #define MCCONF_SL_PHASE_ADVANCE_AT_BR 0.8
@@ -112,7 +112,7 @@
 #define MCCONF_SL_CYCLE_INT_BR 80000
 
 // BEMF Coupling
-#define MCCONF_SL_BEMF_COUPLING_K 219.04
+#define MCCONF_SL_BEMF_COUPLING_K 460
 
 // Hall Table [0]
 #define MCCONF_HALL_TAB_0 -1
@@ -283,16 +283,16 @@
 #define MCCONF_GPD_CURRENT_KI 50
 
 // Speed PID Kp
-#define MCCONF_S_PID_KP 0.0017
+#define MCCONF_S_PID_KP 0.004
 
 // Speed PID Ki
-#define MCCONF_S_PID_KI 0.004
+#define MCCONF_S_PID_KI 0.015
 
 // Speed PID Kd
-#define MCCONF_S_PID_KD 0.00012
+#define MCCONF_S_PID_KD 0.0004
 
 // Speed PID Kd Filer
-#define MCCONF_S_PID_KD_FILTER 0.2
+#define MCCONF_S_PID_KD_FILTER 0.5
 
 // Minimum ERPM
 #define MCCONF_S_PID_MIN_RPM 100
@@ -386,7 +386,6 @@
 
 #include "mcconf_default.h"
 
-
-// MCCONF_DXTRAS_H_
+// MCCONF_412_SIKORSKI_H_
 #endif
 
