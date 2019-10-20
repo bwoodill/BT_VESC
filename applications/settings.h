@@ -41,8 +41,8 @@ X (uint32_t, migrate_rate,  $m, %i,   MIGRATE_SPEED_MILLISECONDS) \
 X (float, 	 guard_high,    $G, %0.2f,SAFETY_SPEED_GUARD_HIGH) \
 X (float, 	 guard_low,     $g, %0.2f,SAFETY_SPEED_GUARD_LOW) \
 X (float,    guard_limit,   $h, %0.2f,SAFETY_SPEED_BI_LIMIT) \
-X (float,    guard_erpm,    $j, %i,   SAFETY_SPEED_ERPM) \
-X (float,    guard_max_erpm,$k, %i,   SAFETY_SPEED_MAX_ERPM) \
+X (uint16_t, guard_erpm,    $j, %i,   SAFETY_SPEED_ERPM) \
+X (uint16_t, guard_max_erpm,$k, %i,   SAFETY_SPEED_MAX_ERPM) \
 X (uint8_t,  safe_count,    $c, %i,   RUNNING_SAFE_OK_CT) \
 X (float,    f_alpha,       $a, %0.4f,SAFETY_FILTER_ALPHA) \
 X (uint8_t,  brightness,    $b, %i,   DISP_BRIGHTNESS) \
