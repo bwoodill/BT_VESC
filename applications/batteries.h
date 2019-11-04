@@ -40,6 +40,7 @@ void check_batteries (void);
 
 // this reads the last calculated battery voltage, of whichever battery is lowest.
 float get_lowest_battery_voltage(void);
+float get_battery_imbalance(void);
 
 
 #endif /* APPLICATIONS_BATTERIES_H_ */
