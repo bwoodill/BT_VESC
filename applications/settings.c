@@ -368,7 +368,7 @@ bool guard_max_erpm(const char *data)
         commands_printf ("out of range. (600-2000)\n");
         return false;
     }
-    settings->guard_erpm = i;
+    settings->guard_max_erpm = i;
     return true;
 }
 bool safe_count (const char *data)
