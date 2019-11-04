@@ -171,9 +171,10 @@ static float limit_speed_by_battery(float speed)
 {
     float lowest_battery = get_lowest_battery_voltage();
 
-    const float batt_cutoff = 29.0 / 2.0;
-    float batt_low = settings->battlevels[0] / 2.0;
-    const int ERPM_range[2] = {1000,3000}; // range of ERPM
+    mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
+
+    float batt_cutoff = conf->l_battery_cut_end / 2.0;
+    float batt_low = conf->l_battery_cut_start / 2.0;
 
     SPED_LOG(("cutoff=%2.2f batt=%2.2f low=%2.2f",
                     (double) batt_cutoff, (double) lowest_battery, (double) batt_low));
@@ -190,10 +191,10 @@ static float limit_speed_by_battery(float speed)
     // to compute the limited speed
 
     // m = dY/dX:
-    float m = (ERPM_range[1] - ERPM_range[0]) / (batt_low - batt_cutoff);
+    float m = (speed) / (batt_low - batt_cutoff);
 
     // solve for b: b = y0 - m * x0
-    float b = ERPM_range[0] - (m * batt_cutoff);
+    float b = 0 - (m * batt_cutoff);
 
     // apply formula to look up the appropriate speed for this voltage
     float limited_speed = (lowest_battery * m) + b;
@@ -201,6 +202,12 @@ static float limit_speed_by_battery(float speed)
                 (double) speed, (double) limited_speed, (double) (lowest_battery * 2.0)));
 
     return limited_speed;
+}
+
+float get_limited_speed(uint8_t user_setting)
+{
+    float user_speed = settings->speeds[user_setting];
+    return limit_speed_by_battery(user_speed);
 }
 
 // adjust the speed including ramping, and return true if the ramping is complete.
@@ -231,10 +238,7 @@ static float adjust_speed (uint8_t user_setting, RUN_MODES mode)
         set_max_current(settings->limits[user_setting]);
 
         // ramp from the present speed toward the desired speed from user setting
-        present_speed = ramping (present_speed, settings->speeds[user_setting]);
-
-        // speed may be limited by battery state
-        present_speed = limit_speed_by_battery(present_speed);
+        present_speed = ramping (present_speed, get_limited_speed(user_setting));
 
         mc_interface_set_pid_speed (present_speed);
     }
@@ -243,7 +247,7 @@ static float adjust_speed (uint8_t user_setting, RUN_MODES mode)
         const char *const mode_str[] = { "OFF", "RUN", "START" };
     #endif
     SPED_LOG(("MODE=%.5s present=%4.2f, programmed=%4.2f",
-            mode_str[(int) mode], (double) present_speed, (double) settings->speeds[user_setting]));
+            mode_str[(int) mode], (double) present_speed, (double) get_limited_speed(user_setting)));
 
 return    present_speed;
 }
@@ -345,7 +349,7 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                 break;
             case TIMER_EXPIRY: // runs often while ramping
                 present_speed = adjust_speed (user_speed, MODE_RUN);    // ramping is taken care of in this function
-                if (present_speed == settings->speeds[user_speed])
+                if (present_speed == get_limited_speed(user_speed))
                     set_timeout(MS2ST(CHECK_BATTERY_PERIOD_MS));
                 else
                     set_timeout(MS2ST(RAMPING_TIME_MS));
