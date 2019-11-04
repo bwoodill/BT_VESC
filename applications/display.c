@@ -54,7 +54,6 @@ void display_init ()
 
     // init the incoming message queue
     chMBObjectInit (&display_mbox, msg_queue, QUEUE_SZ);
-
 }
 
 void send_to_display (MESSAGE event)
@@ -75,7 +74,6 @@ void GFX_drawBlk (int16_t x, int16_t y, int16_t w, int16_t h)
 
 void display_battery_graph (bool initial)
 {
-
     float pack_level;
     if (initial)
     {
@@ -98,16 +96,15 @@ void display_battery_graph (bool initial)
     /* always turn on bar 1 */
     GFX_drawBlk (0, 6, 2, 2);
 
-    // ignore settings->battlevels[0] (on purpose) - it turns out it isn't needed
-    if (pack_level > settings->battlevels[1])
+    if (pack_level > settings->battlevels[0])
     {
         GFX_drawBlk (2, 4, 2, 4);
     }
-    if (pack_level > settings->battlevels[2])
+    if (pack_level > settings->battlevels[1])
     {
         GFX_drawBlk (4, 2, 2, 6);
     }
-    if (pack_level > settings->battlevels[3])
+    if (pack_level > settings->battlevels[2])
     {
         GFX_drawBlk (6, 0, 2, 8);
     }
