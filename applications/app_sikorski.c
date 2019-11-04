@@ -116,7 +116,7 @@ void check_batteries (void)
     static float batt_2,batt_total;
     static int count = 0;
 
-    batt_2 += ((V_REG / 4095.0) * (float) ADC_Value[ADC_IND_EXT] * ((V2_Rtop + V2_Rbottom) / V2_Rbottom));
+    batt_2 += ((V_REG / 4095.0) * (float) ADC_Value[ADC_IND_EXT] * (settings->b2Rratio + 1));
     batt_total += GET_INPUT_VOLTAGE();
 
     // calculate an average after so many counts (count == 0)

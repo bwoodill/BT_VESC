@@ -31,27 +31,28 @@
 
 #define SIKORSKI_VAR_DATA \
 /* type      name          $code printas default value */ \
-X (uint8_t,  speed_default, $d, %i,   SPEED_DEFAULT) \
-X (uint8_t,  max_speed,     $M, %i,   MAX_SPEED_SETTING) \
-X (uint8_t,  use_safety,    $U, %i,   USE_SAFETY_SPEED) \
-X (uint16_t, trig_on_time,  $T, %i,   TRIG_ON_TOUT_MS) \
-X (uint16_t, trig_off_time, $t, %i,   TRIG_OFF_TOUT_MS) \
-X (uint16_t, ramping,       $r, %i,   SPEED_RAMPING_RATE) \
-X (uint32_t, migrate_rate,  $m, %i,   MIGRATE_SPEED_MILLISECONDS) \
-X (float, 	 guard_high,    $G, %0.2f,SAFETY_SPEED_GUARD_HIGH) \
-X (float, 	 guard_low,     $g, %0.2f,SAFETY_SPEED_GUARD_LOW) \
-X (float,    guard_limit,   $h, %0.2f,SAFETY_SPEED_BI_LIMIT) \
-X (uint16_t, guard_erpm,    $j, %i,   SAFETY_SPEED_ERPM) \
-X (uint16_t, guard_max_erpm,$k, %i,   SAFETY_SPEED_MAX_ERPM) \
-X (uint8_t,  safe_count,    $c, %i,   RUNNING_SAFE_OK_CT) \
-X (float,    f_alpha,       $a, %0.4f,SAFETY_FILTER_ALPHA) \
-X (uint8_t,  brightness,    $b, %i,   DISP_BRIGHTNESS) \
-X (uint16_t, power_off_ms,  $p, %i,   DISP_POWER_ON_OFFTIME) \
-X (uint16_t, disp_beg_ms,   $f, %i,   DISP_OFF_TRIGGER_BEG_MS) \
-X (uint16_t, disp_dur_ms,   $D, %i,   DISP_OFF_TRIG_DURATION_MS) \
-X (uint16_t, disp_on_ms,    $n, %i,   DISP_ON_TRIGGER_SPEED_MS) \
-X (float,    batt_imbalance,$b, %0.2f,BATTERY_MAX_IMBALANCE) \
-X (uint8_t,  logging,       $l, %02X, LOGGING_OFF) \
+X (uint8_t,  speed_default, $d, %i,    SPEED_DEFAULT) \
+X (uint8_t,  max_speed,     $M, %i,    MAX_SPEED_SETTING) \
+X (uint8_t,  use_safety,    $U, %i,    USE_SAFETY_SPEED) \
+X (uint16_t, trig_on_time,  $T, %i,    TRIG_ON_TOUT_MS) \
+X (uint16_t, trig_off_time, $t, %i,    TRIG_OFF_TOUT_MS) \
+X (uint16_t, ramping,       $r, %i,    SPEED_RAMPING_RATE) \
+X (uint32_t, migrate_rate,  $m, %i,    MIGRATE_SPEED_MILLISECONDS) \
+X (float, 	 guard_high,    $G, %0.2f, SAFETY_SPEED_GUARD_HIGH) \
+X (float, 	 guard_low,     $g, %0.2f, SAFETY_SPEED_GUARD_LOW) \
+X (float,    guard_limit,   $h, %0.2f, SAFETY_SPEED_BI_LIMIT) \
+X (uint16_t, guard_erpm,    $j, %i,    SAFETY_SPEED_ERPM) \
+X (uint16_t, guard_max_erpm,$k, %i,    SAFETY_SPEED_MAX_ERPM) \
+X (uint8_t,  safe_count,    $c, %i,    RUNNING_SAFE_OK_CT) \
+X (float,    f_alpha,       $a, %0.4f, SAFETY_FILTER_ALPHA) \
+X (uint8_t,  brightness,    $b, %i,    DISP_BRIGHTNESS) \
+X (uint16_t, power_off_ms,  $p, %i,    DISP_POWER_ON_OFFTIME) \
+X (uint16_t, disp_beg_ms,   $f, %i,    DISP_OFF_TRIGGER_BEG_MS) \
+X (uint16_t, disp_dur_ms,   $D, %i,    DISP_OFF_TRIG_DURATION_MS) \
+X (uint16_t, disp_on_ms,    $n, %i,    DISP_ON_TRIGGER_SPEED_MS) \
+X (float,    batt_imbalance,$i, %0.2f, BATTERY_MAX_IMBALANCE) \
+X (float,    b2Rratio,      $x, %0.2f, BATTERY2_SENSE_RATIO) \
+X (uint8_t,  logging,       $l, %02X,  LOGGING_OFF) \
 
 
 typedef struct

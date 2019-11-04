@@ -508,6 +508,23 @@ bool batt_imbalance (const char *data)
     settings->batt_imbalance = x;
     return true;
 }
+bool b2Rratio(const char *data)
+{
+    float x;
+    int num = sscanf (data, "%f", &x);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (x < 10.0 || x > 20.0)
+    {
+        commands_printf ("out of range. (10.0 - 20.0)\n");
+        return false;
+    }
+    settings->b2Rratio = x;
+    return true;
+}
 bool logging(const char *data)
 {
     int i;
