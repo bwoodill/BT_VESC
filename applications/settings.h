@@ -27,7 +27,7 @@
 
 //Size of tables
 #define MAX_SPEED_SETTING 8
-#define BATT_LEVELS 4
+#define BATT_LEVELS 3
 
 #define SIKORSKI_VAR_DATA \
 /* type      name          $code printas default value */ \

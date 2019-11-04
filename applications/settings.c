@@ -143,7 +143,6 @@ void sikorski_set_defaults (sikorski_data *destination)
     destination->battlevels[0] = DISP_BATT_VOLT1;
     destination->battlevels[1] = DISP_BATT_VOLT2;
     destination->battlevels[2] = DISP_BATT_VOLT3;
-    destination->battlevels[3] = DISP_BATT_VOLT4;
 }
 
 void print_all (const char *data)
@@ -161,11 +160,11 @@ void print_all (const char *data)
 #pragma GCC diagnostic pop
 
     int i;
-    for (i = 1; i < 9; i++)
+    for (i = 1; i <= MAX_SPEED_SETTING; i++)
         commands_printf ("$S%i speeds%i %i", i, i, settings->speeds[i - 1]);
-    for (i = 1; i < 9; i++)
+    for (i = 1; i <= MAX_SPEED_SETTING; i++)
         commands_printf ("$L%i limits%i %0.2f", i, i, (double) settings->limits[i - 1]);
-    for (i = 1; i < 5; i++)
+    for (i = 1; i <= BATT_LEVELS; i++)
         commands_printf ("$B%i levels%i %0.2f", i, i, (double) settings->battlevels[i - 1]);
     commands_printf ("    ---- %s ----", APP_VERSION);
 }
