@@ -81,6 +81,7 @@
 
 // BATTERY IMBALANCE
 #define BATTERY_MAX_IMBALANCE 1.5 // Volts that batteries are allowed to be different, to disallow overdischarge
+#define BATTERY2_SENSE_RATIO 14.1 // ratio of voltage divider resistors. Normally 141K to 10K.
 
 // LOGGING
 #define LOGGING_OFF 0

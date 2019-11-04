@@ -25,11 +25,6 @@
 
 #define BATTERY_CHECK_COUNTS 200  // 5 seconds based on 40Hz calling rate
 
-#define K 1000.0
-#define V2_Rtop     (141*K) // (147*K)
-#define V2_Rbottom  (10*K)
-
-
 // check_batteries() checks the for the situation where there is an imbalance in the
 // battery charge between two batteries. In this case we want to indicate
 // to the user which one needs is defective, and stop discharging by
