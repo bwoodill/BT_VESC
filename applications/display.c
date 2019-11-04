@@ -73,9 +73,6 @@ void GFX_drawBlk (int16_t x, int16_t y, int16_t w, int16_t h)
     }
 }
 
-typedef enum _imbalance {IMBALANCE_NONE, IMBALANCE_BATT1, IMBALANCE_BATT2}IMBALANCE;
-static uint8_t batt_imbalance = IMBALANCE_NONE;  // 0 = no imbalance
-
 void display_battery_graph (bool initial)
 {
 
@@ -91,9 +88,6 @@ void display_battery_graph (bool initial)
         pack_level = get_lowest_battery_voltage() * 2.0;
     }
 
-    // keep track of what blink rate is chosen
-    uint8_t blink = HT16K33_BLINK_1HZ;
-
     // Display a bar graph, up to 4 bars.
 
     GFX_setRotation (1);
@@ -108,7 +102,6 @@ void display_battery_graph (bool initial)
     if (pack_level > settings->battlevels[1])
     {
         GFX_drawBlk (2, 4, 2, 4);
-        blink = HT16K33_BLINK_OFF;  // 2 bars or better, don't blink LEDs
     }
     if (pack_level > settings->battlevels[2])
     {
@@ -119,10 +112,10 @@ void display_battery_graph (bool initial)
         GFX_drawBlk (6, 0, 2, 8);
     }
 
-    LED_blinkRate (blink);
+    LED_blinkRate (0);
 
     // When there is an imbalance in the battery charge between two batteries,
-    // indicate to the user which one is defective.
+    // indicate to the user which one is low (defective).
 
     /*  0 1 2 3 4 5 6 7  X        0 1 2 3 4 5 6 7  X
      0  - X - - - - : :        0  X X - - - - - -
@@ -136,14 +129,16 @@ void display_battery_graph (bool initial)
      Y        1                Y         2
     */
 
-    if (batt_imbalance == IMBALANCE_BATT1) // display a small '1'
+    float imbalance = get_battery_imbalance();
+
+    if (imbalance > settings->batt_imbalance) // display a small '1'
     {
         GFX_drawBlk  (1, 0, 1, 4);
         LED_drawPixel(0, 1, LED_ON);
         DISP_LOG(("Displaying '1'"));
     }
 
-    if (batt_imbalance == IMBALANCE_BATT2) // display a small '2'
+    if (imbalance < ( - settings->batt_imbalance)) // display a small '2'
     {
         GFX_drawBlk  (0, 0, 2, 4);
         LED_drawPixel(0, 1, LED_OFF);
@@ -184,13 +179,8 @@ const char *const disp_states[] =
 
 void display_idle(void)
 {
-    if(batt_imbalance)
-        display_battery_graph(false);
-    else
-    {
-        LED_clear ();   // clear display
-        LED_writeDisplay ();
-    }
+    LED_clear ();   // clear display
+    LED_writeDisplay ();
 }
 
 static THD_FUNCTION(display_thread, arg) // @suppress("No return")
@@ -236,15 +226,6 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
         DISP_LOG(("DISPLAY = %s, Event = %s", disp_states[state], message_text (event)));
 
         DISP_STATE old_state = state;
-
-        if(event == BATT_1_TOOLOW)
-        {
-            batt_imbalance = IMBALANCE_BATT1;
-        }
-        if(event == BATT_2_TOOLOW)
-        {
-            batt_imbalance = IMBALANCE_BATT2;
-        }
 
         switch (state)
         {

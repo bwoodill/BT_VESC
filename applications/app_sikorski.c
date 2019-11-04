@@ -93,6 +93,21 @@ float get_lowest_battery_voltage(void)
     return batt_volts[1];
 }
 
+// return the voltage difference between the two batteries
+float get_battery_imbalance(void)
+{
+    float batt_imbalance;
+
+    chMtxLock(&batt_mutex);
+    { // LOCKED CONTEXT
+        batt_imbalance = batteries[1] - batteries[0];
+    }
+    chMtxUnlock(&batt_mutex);
+
+    // return the smallest value
+    return batt_imbalance;
+}
+
 void check_batteries (void)
 {
     // (battery1 (top) + battery2) is read by normal VESC firmware.
@@ -119,15 +134,6 @@ void check_batteries (void)
 
         DISP_LOG(("TOTAL = %2.2f  BATT1 = %2.2f  BATT2 = %2.2f",
             (double) GET_INPUT_VOLTAGE(), (double) batteries[0], (double) batteries[1] ));
-
-        if (batteries[0] - batteries[1] > settings->batt_imbalance)
-        {
-            send_to_display(BATT_2_TOOLOW);
-        }
-        else if(batteries[1] - batteries[0] > settings->batt_imbalance)
-        {
-            send_to_display(BATT_1_TOOLOW);
-        }
     }
     chMtxUnlock(&batt_mutex);
 }
