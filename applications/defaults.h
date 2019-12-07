@@ -79,8 +79,8 @@
 #define DISP_ON_TRIGGER_SPEED_MS 3500 // after ON-TRIGGER, time that speed is shown
 
 // BATTERY IMBALANCE
-#define BATTERY_MAX_IMBALANCE 1.5 // Volts that batteries are allowed to be different, to disallow overdischarge
-#define BATTERY2_SENSE_RATIO 14.1 // ratio of voltage divider resistors. Normally 141K to 10K.
+#define BATTERY_MAX_IMBALANCE 2.0 // Volts that batteries are allowed to be different, to disallow overdischarge
+#define BATTERY2_SENSE_RATIO 14 // ratio of voltage divider resistors. Normally 141K to 10K.
 
 // LOGGING
 #define LOGGING_OFF 0
