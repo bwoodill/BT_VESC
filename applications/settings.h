@@ -46,6 +46,7 @@ X (uint16_t, guard_max_erpm,$k, %i,    SAFETY_SPEED_MAX_ERPM) \
 X (uint8_t,  safe_count,    $c, %i,    RUNNING_SAFE_OK_CT) \
 X (float,    f_alpha,       $a, %0.4f, SAFETY_FILTER_ALPHA) \
 X (uint8_t,  brightness,    $b, %i,    DISP_BRIGHTNESS) \
+X (uint8_t,  disp_rotation, $R, %i,    DISP_ROTATION) \
 X (uint16_t, power_off_ms,  $p, %i,    DISP_POWER_ON_OFFTIME) \
 X (uint16_t, disp_beg_ms,   $f, %i,    DISP_OFF_TRIGGER_BEG_MS) \
 X (uint16_t, disp_dur_ms,   $D, %i,    DISP_OFF_TRIG_DURATION_MS) \

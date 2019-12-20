@@ -73,6 +73,7 @@
 
 // DISPLAY SETTINGS
 #define DISP_BRIGHTNESS 6 // 0 to 15 (Max)
+#define DISP_ROTATION 0 // 0 to 3 - for fixing differences in display hardware
 #define DISP_POWER_ON_OFFTIME 10000	// after power on - milliseconds until display stops
 #define DISP_OFF_TRIGGER_BEG_MS 3000 // after OFF-TRIGGER, begin display - time for battery to settle
 #define DISP_OFF_TRIG_DURATION_MS 6000 // after OFF-TRIGGER, leave the display on for this time period

@@ -422,6 +422,23 @@ bool brightness (const char *data)
     settings->brightness = i;
     return true;
 }
+bool disp_rotation (const char *data)
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 0 || i > 3)
+    {
+        commands_printf ("out of range. (0-3)\n");
+        return false;
+    }
+    settings->disp_rotation = i;
+    return true;
+}
 bool power_off_ms (const char *data)
 {
     int i;
