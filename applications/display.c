@@ -88,7 +88,7 @@ void display_battery_graph (bool initial)
 
     // Display a bar graph, up to 4 bars.
 
-    GFX_setRotation (1);
+    GFX_setRotation (settings->disp_rotation);
     LED_clear ();   // clear display
 
     // hard-coded checks was more straight forward and readable than a loop.
@@ -149,7 +149,7 @@ void display_battery_graph (bool initial)
 void display_speed (MESSAGE speed)
 {
     int new_speed = speed - DISP_SPEED_1 + 1;
-    GFX_setRotation (1);
+    GFX_setRotation (settings->disp_rotation);
     GFX_setTextSize (1);
     GFX_setTextColor (LED_ON);
     LED_clear ();
@@ -295,7 +295,7 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
             {
             case DISP_ON_TRIGGER: 	// rcvd when the motor turns on
                 LED_clear ();	// clear display
-                GFX_setRotation (1);
+                GFX_setRotation (settings->disp_rotation);
                 LED_writeDisplay ();
                 timeout = TIME_INFINITE;
                 state = DISP_SPEED;
