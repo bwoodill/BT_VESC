@@ -420,6 +420,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_SET_MCCONF:
 		mcconf = *mc_interface_get_configuration();
 
+#ifdef _STORE_CONFIGS_
 		if (confgenerator_deserialize_mcconf(data, &mcconf)) {
 			utils_truncate_number(&mcconf.l_current_max_scale , 0.0, 1.0);
 			utils_truncate_number(&mcconf.l_current_min_scale , 0.0, 1.0);
@@ -443,6 +444,10 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		} else {
 			commands_printf("Warning: Could not set mcconf due to wrong signature");
 		}
+#else
+	    commands_printf("setting mcconf disabled");
+#endif
+
 		break;
 
 	case COMM_GET_MCCONF:
