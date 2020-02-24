@@ -3,6 +3,11 @@
 #ifndef APPCONF_SIKORSKI_H_
 #define APPCONF_SIKORSKI_H_
 
+// define this if you want to be able to store APP CONFIG using Vesc Tool
+// DISABLED for normal use.
+// #define _STORE_CONFIGS_
+
+
 // VESC ID
 #define APPCONF_CONTROLLER_ID 27
 

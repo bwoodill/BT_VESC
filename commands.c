@@ -458,7 +458,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 	case COMM_SET_APPCONF:
 		appconf = *app_get_configuration();
-
+#ifdef _STORE_CONFIGS_
 		if (confgenerator_deserialize_appconf(data, &appconf)) {
 			conf_general_store_app_configuration(&appconf);
 			app_set_configuration(&appconf);
@@ -472,6 +472,9 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		} else {
 			commands_printf("Warning: Could not set appconf due to wrong signature");
 		}
+#else
+	    commands_printf("appconf disabled");
+#endif
 		break;
 
 	case COMM_GET_APPCONF:
