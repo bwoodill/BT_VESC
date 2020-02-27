@@ -43,21 +43,21 @@
 #define SPEEDS8 5735
 
 // CURRENT LIMIT PER PROGRAMMED SPEED
-#define LIMITS1 1.66
-#define LIMITS2 3.26
-#define LIMITS3 5.64
-#define LIMITS4 8.98
-#define LIMITS5 13.42
-#define LIMITS6 19.14
-#define LIMITS7 26.27
-#define LIMITS8 35
+#define LIMITS1 1.34
+#define LIMITS2 2.63
+#define LIMITS3 4.55
+#define LIMITS4 7.24
+#define LIMITS5 10.82
+#define LIMITS6 15.43
+#define LIMITS7 21.18
+#define LIMITS8 28.22
 
 // BATTERY DISPLAY (PER DISPLAYED BAR)
 #define DISP_BATT_VOLT1	34.0
 #define DISP_BATT_VOLT2	36.0
 #define DISP_BATT_VOLT3	38.0
 
-#define SPEED_RAMPING_RATE 2400 // RPMS per second - approximately 1/4 second per speed increase
+#define SPEED_RAMPING_RATE 1500 // RPMS per second - approximately 1/4 second per speed increase
 
 #define MIGRATE_SPEED_MILLISECONDS 5000 // time period to change speeds during off-trigger toward SPEED_DEFAULT
 
@@ -73,7 +73,7 @@
 
 // DISPLAY SETTINGS
 #define DISP_BRIGHTNESS 6 // 0 to 15 (Max)
-#define DISP_ROTATION 0 // 0 to 3 - for fixing differences in display hardware
+#define DISP_ROTATION 1 // 0 to 3 - for fixing differences in display hardware
 #define DISP_POWER_ON_OFFTIME 10000	// after power on - milliseconds until display stops
 #define DISP_OFF_TRIGGER_BEG_MS 3000 // after OFF-TRIGGER, begin display - time for battery to settle
 #define DISP_OFF_TRIG_DURATION_MS 6000 // after OFF-TRIGGER, leave the display on for this time period

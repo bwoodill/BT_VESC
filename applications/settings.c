@@ -586,9 +586,9 @@ bool set_limits (int index, const char *data)
         commands_printf ("invalid input.\n");
         return false;
     }
-    if (x < 1.0 || x > 30.0)
+    if (x < 1.0 || x > 28.5)
     {
-        commands_printf ("out of range. (1.0-30.0)\n");
+        commands_printf ("out of range. (1.0-28.5)\n");
         return false;
     }
     settings->limits[index] = x;

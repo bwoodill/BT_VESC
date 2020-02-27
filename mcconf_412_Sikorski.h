@@ -10,19 +10,19 @@
 #define MCCONF_COMM_MODE 0
 
 // Motor Type
-#define MCCONF_DEFAULT_MOTOR_TYPE 0
+#define MCCONF_DEFAULT_MOTOR_TYPE 2
 
 // Sensor Mode
 #define MCCONF_SENSOR_MODE 0
 
 // Motor Current Max
-#define MCCONF_L_CURRENT_MAX 56
+#define MCCONF_L_CURRENT_MAX 40
 
 // Motor Current Max Brake
-#define MCCONF_L_CURRENT_MIN -56
+#define MCCONF_L_CURRENT_MIN -40
 
 // Battery Current Max
-#define MCCONF_L_IN_CURRENT_MAX 0.25
+#define MCCONF_L_IN_CURRENT_MAX 28
 
 // Battery Current Max Regen
 #define MCCONF_L_IN_CURRENT_MIN -1
@@ -34,7 +34,7 @@
 #define MCCONF_L_RPM_MIN -100000
 
 // Max ERPM
-#define MCCONF_L_RPM_MAX 1500
+#define MCCONF_L_RPM_MAX 5000
 
 // ERPM Limit Start
 #define MCCONF_L_RPM_START 0.8
@@ -142,13 +142,13 @@
 #define MCCONF_HALL_ERPM 2000
 
 // Current KP
-#define MCCONF_FOC_CURRENT_KP 0.1301
+#define MCCONF_FOC_CURRENT_KP 0.0331
 
 // Current KI
-#define MCCONF_FOC_CURRENT_KI 77.85
+#define MCCONF_FOC_CURRENT_KI 20.45
 
 // Switching Frequency
-#define MCCONF_FOC_F_SW 10000
+#define MCCONF_FOC_F_SW 25000
 
 // Dead Time Compensation
 #define MCCONF_FOC_DT_US 0.08
@@ -187,16 +187,16 @@
 #define MCCONF_FOC_PLL_KI 30000
 
 // Motor Inductance (L)
-#define MCCONF_FOC_MOTOR_L 0.00013015
+#define MCCONF_FOC_MOTOR_L 0.00013227
 
 // Motor Resistance (R)
-#define MCCONF_FOC_MOTOR_R 0.0779
+#define MCCONF_FOC_MOTOR_R 0.0808
 
 // Motor Flux Linkage (λ)
-#define MCCONF_FOC_MOTOR_FLUX_LINKAGE 0.018663
+#define MCCONF_FOC_MOTOR_FLUX_LINKAGE 0.019014
 
 // Observer Gain (x1M)
-#define MCCONF_FOC_OBSERVER_GAIN 2.87e+06
+#define MCCONF_FOC_OBSERVER_GAIN 200000
 
 // Observer Gain At Minimum Duty
 #define MCCONF_FOC_OBSERVER_GAIN_SLOW 0.3
@@ -256,7 +256,7 @@
 #define MCCONF_FOC_SAMPLE_HIGH_CURRENT 0
 
 // Stator Saturation Compensation
-#define MCCONF_FOC_SAT_COMP 0.15
+#define MCCONF_FOC_SAT_COMP 0
 
 // Temp Comp
 #define MCCONF_FOC_TEMP_COMP 0
@@ -266,6 +266,33 @@
 
 // Current Filter Constant
 #define MCCONF_FOC_CURRENT_FILTER_CONST 0.1
+
+// Current Controller Decoupling
+#define MCCONF_FOC_CC_DECOUPLING 3
+
+// Observer Type
+#define MCCONF_FOC_OBSERVER_TYPE 0
+
+// HFI Start Voltage
+#define MCCONF_FOC_HFI_VOLTAGE_START 20
+
+// HFI Run Voltage
+#define MCCONF_FOC_HFI_VOLTAGE_RUN 4
+
+// HFI Max Voltage
+#define MCCONF_FOC_HFI_VOLTAGE_MAX 10
+
+// Sensorless ERPM HFI
+#define MCCONF_FOC_SL_ERPM_HFI 2000
+
+// HFI Start Samples
+#define MCCONF_FOC_HFI_START_SAMPLES 65
+
+// HFI Observer Override Time
+#define MCCONF_FOC_HFI_OBS_OVR_SEC 0.001
+
+// HFI Samples
+#define MCCONF_FOC_HFI_SAMPLES 1
 
 // Buffer Notification Length
 #define MCCONF_GPD_BUFFER_NOTIFY_LEFT 200
@@ -319,7 +346,7 @@
 #define MCCONF_CC_STARTUP_BOOST_DUTY 0
 
 // Minimum Current
-#define MCCONF_CC_MIN_CURRENT 0.1
+#define MCCONF_CC_MIN_CURRENT 0.05
 
 // Current Controller Gain
 #define MCCONF_CC_GAIN 0.0046
@@ -361,10 +388,16 @@
 #define MCCONF_M_DC_F_SW 25000
 
 // Beta Value for Motor Thermistor
-#define MCCONF_M_NTC_MOTOR_BETA 3380
+#define MCCONF_M_NTC_MOTOR_BETA 3977
 
 // Auxiliary Output Mode
 #define MCCONF_M_OUT_AUX_MODE 0
+
+// Motor Temperature Sensor Type
+#define MCCONF_M_MOTOR_TEMP_SENS_TYPE 0
+
+// Coefficient for PTC Motor Thermistor
+#define MCCONF_M_PTC_MOTOR_COEFF 0.61
 
 // Motor Poles
 #define MCCONF_SI_MOTOR_POLES 5
