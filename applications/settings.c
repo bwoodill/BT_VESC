@@ -568,9 +568,9 @@ bool set_speeds (int index, const char *data)
         commands_printf ("invalid input.\n");
         return false;
     }
-    if (i < 2000 || i > 6000)
+    if (i < 1000 || i > 5000)
     {
-        commands_printf ("out of range. (2000-6000)\n");
+        commands_printf ("out of range. (1000-5000)\n");
         return false;
     }
     settings->speeds[index] = i;
@@ -586,9 +586,9 @@ bool set_limits (int index, const char *data)
         commands_printf ("invalid input.\n");
         return false;
     }
-    if (x < 1.0 || x > 28.5)
+    if (x < 0.5 || x > 23)
     {
-        commands_printf ("out of range. (1.0-28.5)\n");
+        commands_printf ("out of range. (0.5-23)\n");
         return false;
     }
     settings->limits[index] = x;
