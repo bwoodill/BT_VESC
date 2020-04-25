@@ -119,6 +119,7 @@ void save_all_settings (void)
 
 void sikorski_set_defaults (sikorski_data *destination)
 {
+    destination->SettingsValidMagic = VALID_VALUE;
 #define X(type,name,code,printas,defaultval) destination->name = defaultval;
     SIKORSKI_VAR_DATA
 #undef X

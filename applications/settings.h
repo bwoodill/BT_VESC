@@ -55,9 +55,11 @@ X (float,    batt_imbalance,$i, %0.2f, BATTERY_MAX_IMBALANCE) \
 X (float,    b2Rratio,      $x, %0.2f, BATTERY2_SENSE_RATIO) \
 X (uint8_t,  logging,       $l, %02X,  LOGGING_OFF) \
 
+#define VALID_VALUE 0xF3       // Unique magic number used to tell if settings are valid
 
 typedef struct
 {
+    uint8_t SettingsValidMagic;
 #define X(type,name,code,printas,defaultval) type name;
     SIKORSKI_VAR_DATA
 #undef X
@@ -73,6 +75,7 @@ sikorski_data* get_sikorski_settings_ptr (void);
 // process a command from terminal.c. Only commands that start with '$' are directed here
 void settings_command (char *command);
 void print_all (const char *data);
+void save_all_settings(void);
 
 void sikorski_set_defaults (sikorski_data *destination);
 

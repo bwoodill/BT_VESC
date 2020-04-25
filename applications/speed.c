@@ -275,9 +275,6 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
 
     float present_speed = 0.0;		// speed that motor is set to.
 
-    // Delay this task starting so that settings are updated
-    fetch = chMBFetch (&speed_mbox, (msg_t*) &event, MS2ST(500/*mSec*/));
-
     settings = get_sikorski_settings_ptr ();
     uint8_t user_speed = DEFAULT_SPEED; // the index to the speed setting. Always start out in the default speed
 

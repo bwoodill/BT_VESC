@@ -38,7 +38,7 @@
 
 // Display thread
 static THD_FUNCTION(display_thread, arg);
-static THD_WORKING_AREA(display_thread_wa, 1024); // small stack
+static THD_WORKING_AREA(display_thread_wa, 2048); // medium stack
 
 #define QUEUE_SZ 4
 static msg_t msg_queue[QUEUE_SZ];
@@ -180,28 +180,34 @@ void display_idle(void)
     LED_writeDisplay ();
 }
 
+void display_start(void)
+{
+    LED_begin();
+}
+
+void display_dots(uint16_t pos)
+{
+    LED_clear ();
+    LED_drawPixel (pos & 0x07, 7, LED_ON);
+    pos++;
+    LED_writeDisplay ();
+}
+
 static THD_FUNCTION(display_thread, arg) // @suppress("No return")
 {
     (void) arg;
 
     chRegSetThreadName ("I2C_DISPLAY");
 
-    LED_begin ();
-    LED_setBrightness (settings->brightness);
-    LED_clear ();	// clear display
-    LED_blinkRate (HT16K33_BLINK_OFF);
-    LED_writeDisplay ();
+    display_start();
 
     // the message retrieved from the mailbox
     msg_t fetch = MSG_OK;
     int32_t event = TIMER_EXPIRY;
 
-    // Delay this task starting so that settings are updated
-    chThdSleepMilliseconds(500);   // sleep long enough for settings to be set by init functions
     settings = get_sikorski_settings_ptr ();
 
     // clear display & then display voltage meter
-    LED_clear ();
     display_battery_graph(true);
     LED_writeDisplay ();
 

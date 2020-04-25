@@ -55,8 +55,24 @@ void app_sikorski_init (void)
 {
     chMtxObjectInit(&batt_mutex);
 
-    // Set the SERVO pin as an input with pullup
+    // Set the SERVO pin as an input with pullup (attached to the trigger switch)
     palSetPadMode(HW_ICU_GPIO, HW_ICU_PIN, PAL_MODE_INPUT_PULLUP);
+
+    settings = get_sikorski_settings_ptr();
+
+    display_start();
+
+    int i = 0;
+    while(settings->SettingsValidMagic != VALID_VALUE)
+    {
+        display_dots(i++);
+        chThdSleepMilliseconds(500);   // sleep long enough for other applications to be online
+        if(i >= 30)
+        {
+            settings->SettingsValidMagic = VALID_VALUE;
+//             save_all_settings ();
+        }
+    }
 
     // Start the motor speed thread
     speed_init ();
@@ -143,7 +159,7 @@ static THD_FUNCTION(switch_thread, arg) // @suppress("No return")
     (void) arg;
 
     chRegSetThreadName ("SWITCH");
-    static uint8_t sw = 0;
+    static uint8_t sw = 1;
     bool trigger_pressed = false;
 
     chThdSleepMilliseconds(500);   // sleep long enough for settings to be set by init functions

@@ -66,7 +66,6 @@ static THD_WORKING_AREA(trigger_thread_wa, 2048);
 
 void trigger_init (void)
 {
-
     /* Start trigger thread. */
     chThdCreateStatic (trigger_thread_wa, sizeof(trigger_thread_wa), NORMALPRIO, trigger_thread, NULL);
 
@@ -91,9 +90,6 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
     msg_t fetch = MSG_OK;
     int32_t event;
 
-    // Delay this task starting so that settings are updated
-    fetch = chMBFetch (&trigger_mbox, (msg_t*) &event, MS2ST(500/*mSec*/));
-
     settings = get_sikorski_settings_ptr();
 
     // timeout value (used as a timeout service)
@@ -101,7 +97,6 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
 
     for (;;)
     {
-
         fetch = chMBFetch (&trigger_mbox, (msg_t*) &event, timeout);
 
         if (fetch == MSG_TIMEOUT)
