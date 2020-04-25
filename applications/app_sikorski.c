@@ -26,6 +26,7 @@
 #include "hw.h" // Pin mapping on this hardware
 #include "timeout.h" // To reset the timeout
 #include <stddef.h>
+#include <stdbool.h>
 
 #include "commands.h"
 #include "settings.h"
@@ -118,6 +119,12 @@ void check_batteries (void)
 
     static float batt_2,batt_total;
     static int count = 0;
+    static bool first = true;
+    if(first)
+    {
+        first = false;
+        batteries[0] = batteries[1] = GET_INPUT_VOLTAGE() / 2;
+    }
 
     batt_2 += ((V_REG / 4095.0) * (float) ADC_Value[ADC_IND_EXT] * (settings->b2Rratio + 1));
     batt_total += GET_INPUT_VOLTAGE();
