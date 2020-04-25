@@ -276,6 +276,11 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
     float present_speed = 0.0;		// speed that motor is set to.
 
     settings = get_sikorski_settings_ptr ();
+    while(settings->magic != VALID_VALUE)
+    {
+        chThdSleepMilliseconds(50);   // sleep long enough for other applications to be online
+    }
+
     uint8_t user_speed = DEFAULT_SPEED; // the index to the speed setting. Always start out in the default speed
 
     for (;;)
@@ -421,7 +426,7 @@ static THD_FUNCTION(motor_ready_thread, arg) // @suppress("No return")
     msg_t fetch = MSG_OK;
 
     int32_t event = SPEED_OFF;
-    uint8_t running_safe_ct = 0; // count up when safety band is acheived. If it gets above threshold, indicate to
+    uint8_t running_safe_ct = 0; // count up when safety band is achieved. If it gets above threshold, indicate to
     // speed thread that it is safe to run full speed
 
     // timeout value (used as a timeout service)

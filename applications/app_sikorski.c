@@ -62,18 +62,6 @@ void app_sikorski_init (void)
 
     display_start();
 
-    int i = 0;
-    while(settings->SettingsValidMagic != VALID_VALUE)
-    {
-        display_dots(i++);
-        chThdSleepMilliseconds(500);   // sleep long enough for other applications to be online
-        if(i >= 30)
-        {
-            settings->SettingsValidMagic = VALID_VALUE;
-//             save_all_settings ();
-        }
-    }
-
     // Start the motor speed thread
     speed_init ();
 
@@ -86,7 +74,6 @@ void app_sikorski_init (void)
     // Start the display thread
     display_init ();
 }
-
 
 static float batteries[2];
 
@@ -162,7 +149,6 @@ static THD_FUNCTION(switch_thread, arg) // @suppress("No return")
     static uint8_t sw = 1;
     bool trigger_pressed = false;
 
-    chThdSleepMilliseconds(500);   // sleep long enough for settings to be set by init functions
     settings = get_sikorski_settings_ptr();
 
     for (;;)
@@ -181,7 +167,14 @@ static THD_FUNCTION(switch_thread, arg) // @suppress("No return")
             sw = 0;
         }
 
-        check_batteries();
+        int i = 0;
+        if(settings->magic != VALID_VALUE)
+        {
+            display_dots(i++);
+            chThdSleepMilliseconds(500);   // sleep long enough for other applications to be online
+        }
+        else
+            check_batteries();
 
         // Run this loop at 40Hz - timing isn't critical
         chThdSleepMilliseconds(1000 / 40.0);

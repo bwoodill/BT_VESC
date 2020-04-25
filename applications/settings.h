@@ -29,8 +29,12 @@
 #define MAX_SPEED_SETTING 8
 #define BATT_LEVELS 3
 
+// DATA VALID MAGIC NUMBER
+#define VALID_VALUE 0x27F3       // Unique magic number used to tell if settings are valid
+
 #define SIKORSKI_VAR_DATA \
-/* type      name          $code printas default value */ \
+/* type      name        $code printas default value */ \
+X (uint16_t, magic,         $w, %04X,  VALID_VALUE) \
 X (uint8_t,  speed_default, $d, %i,    SPEED_DEFAULT) \
 X (uint8_t,  max_speed,     $M, %i,    MAX_SPEED_SETTING) \
 X (uint8_t,  use_safety,    $U, %i,    USE_SAFETY_SPEED) \
@@ -55,11 +59,8 @@ X (float,    batt_imbalance,$i, %0.2f, BATTERY_MAX_IMBALANCE) \
 X (float,    b2Rratio,      $x, %0.2f, BATTERY2_SENSE_RATIO) \
 X (uint8_t,  logging,       $l, %02X,  LOGGING_OFF) \
 
-#define VALID_VALUE 0xF3       // Unique magic number used to tell if settings are valid
-
 typedef struct
 {
-    uint8_t SettingsValidMagic;
 #define X(type,name,code,printas,defaultval) type name;
     SIKORSKI_VAR_DATA
 #undef X

@@ -201,11 +201,18 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
 
     display_start();
 
+    settings = get_sikorski_settings_ptr ();
+
+    int i = 0;
+    while(settings->magic != VALID_VALUE)
+    {
+        display_dots(i++);
+        chThdSleepMilliseconds(50);   // sleep long enough for other applications to be online
+    }
+
     // the message retrieved from the mailbox
     msg_t fetch = MSG_OK;
     int32_t event = TIMER_EXPIRY;
-
-    settings = get_sikorski_settings_ptr ();
 
     // clear display & then display voltage meter
     display_battery_graph(true);

@@ -119,7 +119,6 @@ void save_all_settings (void)
 
 void sikorski_set_defaults (sikorski_data *destination)
 {
-    destination->SettingsValidMagic = VALID_VALUE;
 #define X(type,name,code,printas,defaultval) destination->name = defaultval;
     SIKORSKI_VAR_DATA
 #undef X
@@ -180,6 +179,18 @@ bool use_safety (const char *data)
         return false;
     }
     settings->use_safety = i ? 1 : 0;
+    return true;
+}
+
+bool magic (const char *data)
+{
+    unsigned int i;
+    int num = sscanf (data, "%x", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
     return true;
 }
 

@@ -91,6 +91,10 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
     int32_t event;
 
     settings = get_sikorski_settings_ptr();
+    while(settings->magic != VALID_VALUE)
+    {
+        chThdSleepMilliseconds(50);   // sleep long enough for other applications to be online
+    }
 
     // timeout value (used as a timeout service)
     systime_t timeout = TIME_INFINITE; // timeout in ticks. Use MS2ST(milliseconds) to set the value in milliseconds
