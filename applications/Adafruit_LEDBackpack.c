@@ -1,20 +1,20 @@
-/*************************************************** 
+/***************************************************
   This is a library for our I2C LED Backpacks
 
-  Designed specifically to work with the Adafruit LED Matrix backpacks 
+  Designed specifically to work with the Adafruit LED Matrix backpacks
   ----> http://www.adafruit.com/products/
   ----> http://www.adafruit.com/products/
 
-  These displays use I2C to communicate, 2 pins are required to 
+  These displays use I2C to communicate, 2 pins are required to
   interface. There are multiple selectable I2C addresses. For backpacks
   with 2 Address Select pins: 0x70, 0x71, 0x72 or 0x73. For backpacks
   with 3 Address Select pins: 0x70 thru 0x77
 
-  Adafruit invests time and resources providing this open source code, 
-  please support Adafruit and open-source hardware by purchasing 
+  Adafruit invests time and resources providing this open source code,
+  please support Adafruit and open-source hardware by purchasing
   products from Adafruit!
 
-  Written by Limor Fried/Ladyada for Adafruit Industries.  
+  Written by Limor Fried/Ladyada for Adafruit Industries.
   MIT license, all text above must be included in any redistribution
 
 
@@ -26,6 +26,7 @@ Modifications Copyright Claroworks.
 #include "ch.h"
 #include "hal.h"
 
+#include "i2c_bb.h" // bit bang i2c library
 #include "Adafruit_LEDBackpack.h"
 #include "Adafruit_GFX.h"
 
@@ -38,22 +39,27 @@ Modifications Copyright Claroworks.
 #endif
 
 uint16_t displaybuffer[8];
-
+static i2c_bb_state i2cs;
 uint8_t rxbuf[2];
 uint8_t txbuf[20];
+i2caddr_t i2caddr = 0x70;
+
 msg_t status = MSG_OK;
 systime_t tmo = MS2ST(5);
-i2caddr_t i2caddr = 0x70;
 
 void LED_begin(void) {
 
-	hw_start_i2c();
-	chThdSleepMilliseconds(10);
+    i2cs.sda_gpio = HW_I2C_SDA_PORT;
+    i2cs.sda_pin = HW_I2C_SDA_PIN;
+    i2cs.scl_gpio = HW_I2C_SCL_PORT;
+    i2cs.scl_pin = HW_I2C_SCL_PIN;
+    i2c_bb_init(&i2cs);
 
-	txbuf[0] = 0x21;
-	i2cAcquireBus(&HW_I2C_DEV);
-	i2cMasterTransmitTimeout(&HW_I2C_DEV, i2caddr, txbuf, 1, rxbuf, 0, tmo);
-	i2cReleaseBus(&HW_I2C_DEV);
+    chThdSleepMilliseconds(10);
+
+    i2c_bb_restore_bus(&i2cs);
+    txbuf[0] = 0x21;
+    i2c_bb_tx_rx(&i2cs, i2caddr, txbuf, 1, 0, 0);
 
 	LED_blinkRate(HT16K33_BLINK_OFF);
 	LED_setBrightness(15); // max brightness
@@ -64,9 +70,9 @@ void LED_setBrightness(uint8_t b) {
 		b = 15;
 
 	txbuf[0] = HT16K33_CMD_BRIGHTNESS | b;
-	i2cAcquireBus(&HW_I2C_DEV);
-	i2cMasterTransmitTimeout(&HW_I2C_DEV, i2caddr, txbuf, 1, rxbuf, 0, tmo);
-	i2cReleaseBus(&HW_I2C_DEV);
+
+    i2c_bb_restore_bus(&i2cs);
+    i2c_bb_tx_rx(&i2cs, i2caddr, txbuf, 1, 0, 0);
 }
 
 void LED_blinkRate(uint8_t b) {
@@ -74,9 +80,9 @@ void LED_blinkRate(uint8_t b) {
 		b = 0;
 
 	txbuf[0] = HT16K33_BLINK_CMD | HT16K33_BLINK_DISPLAYON | (b << 1);
-	i2cAcquireBus(&HW_I2C_DEV);
-	i2cMasterTransmitTimeout(&HW_I2C_DEV, i2caddr, txbuf, 1, rxbuf, 0, tmo);
-	i2cReleaseBus(&HW_I2C_DEV);
+
+    i2c_bb_restore_bus(&i2cs);
+    i2c_bb_tx_rx(&i2cs, i2caddr, txbuf, 1, 0, 0);
 }
 
 void LED_writeDisplay(void) {
@@ -87,9 +93,8 @@ void LED_writeDisplay(void) {
 		txbuf[j++] = displaybuffer[i] >> 8;
 	}
 
-	i2cAcquireBus(&HW_I2C_DEV);
-	i2cMasterTransmitTimeout(&HW_I2C_DEV, i2caddr, txbuf, j, rxbuf, 0, tmo);
-	i2cReleaseBus(&HW_I2C_DEV);
+    i2c_bb_restore_bus(&i2cs);
+    i2c_bb_tx_rx(&i2cs, i2caddr, txbuf, j, 0, 0);
 }
 
 void LED_clear(void) {
@@ -97,7 +102,6 @@ void LED_clear(void) {
 		displaybuffer[i] = 0;
 	}
 }
-
 
 /******************************* 8x8 MATRIX OBJECT */
 
