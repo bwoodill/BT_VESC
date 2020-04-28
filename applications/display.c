@@ -237,6 +237,14 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
 
         DISP_STATE old_state = state;
 
+        if (event >= DISP_SPEED_1 && event <= DISP_SPEED_9) // don't handle above speed 9, rewrite as needed to support...
+        {
+            state = DISP_SPEED;
+            display_speed (event);
+            timeout = MS2ST(settings->disp_on_ms);
+            continue;
+        }
+
         switch (state)
         {
         case DISP_PWR_ON:
@@ -256,12 +264,6 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
             }
             break;
         case DISP_SPEED:				// enter this state when "on trigger" - motor is running
-            if (event >= DISP_SPEED_1 && event <= DISP_SPEED_9) // don't handle above speed 9, rewrite as needed to support...
-            {
-                display_speed (event);
-                timeout = MS2ST(settings->disp_on_ms);
-                break;
-            }
             switch (event)
             {
             case TIMER_EXPIRY:
@@ -281,13 +283,6 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
             break;
 
         case DISP_OFF:                // After displaying speed, go IDLE.
-            if (event >= DISP_SPEED_1 && event <= DISP_SPEED_9) // don't handle above speed 9, rewrite as needed to support...
-            {
-                state = DISP_SPEED;
-                display_speed (event);
-                timeout = MS2ST(settings->disp_on_ms);
-                break;
-            }
             switch (event)
             {
             case DISP_OFF_TRIGGER: 	// rcvd when the motor turns off - start the display cycle by showing the 'waiting' display
