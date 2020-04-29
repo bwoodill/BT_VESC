@@ -46,6 +46,9 @@ mailbox_t display_mbox;
 
 static sikorski_data *settings;
 
+#define HOLD_DISPLAY_TIME_mS MS2ST(1500)
+static MESSAGE last_speed = 3;
+
 // Start the display thread
 void display_init ()
 {
@@ -149,6 +152,8 @@ void display_battery_graph (bool initial)
 void display_speed (MESSAGE speed)
 {
     int new_speed = speed - DISP_SPEED_1 + 1;
+    if(new_speed > 9 || new_speed < 1)
+        return;
     GFX_setRotation (settings->disp_rotation);
     GFX_setTextSize (1);
     GFX_setTextColor (LED_ON);
@@ -165,14 +170,15 @@ void display_speed (MESSAGE speed)
 typedef enum _disp_state
 {
     DISP_OFF = 0,	// Display is idle
-    DISP_ON,		// display is showing battery
+    DISP_BATT,		// display is showing battery
+    DISP_TRIG,      // display is "on trigger" - waiting to display speed
     DISP_WAIT,		// display is showing 'wait for it'
     DISP_SPEED,     // displaying the speed number
-    DISP_PWR_ON
+    DISP_PWR_ON     // Power on display
 } DISP_STATE;
 
 const char *const disp_states[] =
-    { "DISP_OFF", "DISP_ON", "DISP_WAIT", "DISP_SPEED", "DISP_PWR_ON" };
+    { "DISP_OFF", "DISP_BATT", "DISP_TRIG", "DISP_WAIT", "DISP_SPEED", "DISP_PWR_ON" };
 
 void display_idle(void)
 {
@@ -237,14 +243,6 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
 
         DISP_STATE old_state = state;
 
-        if (event >= DISP_SPEED_1 && event <= DISP_SPEED_9) // don't handle above speed 9, rewrite as needed to support...
-        {
-            state = DISP_SPEED;
-            display_speed (event);
-            timeout = MS2ST(settings->disp_on_ms);
-            continue;
-        }
-
         switch (state)
         {
         case DISP_PWR_ON:
@@ -256,20 +254,43 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
                 state = DISP_OFF;
                 break;
             case DISP_ON_TRIGGER:   // rcvd when the motor turns on
-                state = DISP_SPEED;
+                timeout = HOLD_DISPLAY_TIME_mS;
+                state = DISP_TRIG;
+                last_speed = 0;
                 break;
             default:
                 display_battery_graph(false);
                 break;
             }
             break;
+        case DISP_TRIG:
+            if (event >= DISP_SPEED_1 && event <= DISP_SPEED_9) // don't handle above speed 9, rewrite as needed to support...
+                last_speed = event;
+
+            switch (event)
+            {
+            case TIMER_EXPIRY:
+                display_speed (last_speed);
+                timeout = MS2ST(settings->disp_on_ms);
+                state = DISP_SPEED;
+                break;
+            default:
+                break;
+            }
+            break;
         case DISP_SPEED:				// enter this state when "on trigger" - motor is running
+            if (event >= DISP_SPEED_1 && event <= DISP_SPEED_9) // don't handle above speed 9, rewrite as needed to support...
+            {
+                last_speed = event;
+                display_speed (last_speed);
+                timeout = MS2ST(settings->disp_on_ms);
+                break;
+            }
             switch (event)
             {
             case TIMER_EXPIRY:
                 display_idle();
                 timeout = TIME_INFINITE;
-                state = DISP_OFF;
                 break;
             case DISP_OFF_TRIGGER: 	// rcvd when the motor turns off - start the display cycle by showing the 'waiting' display
                 display_idle();
@@ -285,14 +306,10 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
         case DISP_OFF:                // After displaying speed, go IDLE.
             switch (event)
             {
-            case DISP_OFF_TRIGGER: 	// rcvd when the motor turns off - start the display cycle by showing the 'waiting' display
-                display_idle();
-                timeout = MS2ST(settings->disp_beg_ms / 24);	// 8 dots in waiting progression
-                state = DISP_WAIT;
-                dot_pos = 0;
-                break;
             case DISP_ON_TRIGGER:   // rcvd when the motor turns on
-                state = DISP_SPEED;
+                last_speed = 0;
+                timeout = HOLD_DISPLAY_TIME_mS;
+                state = DISP_TRIG;
                 break;
             default:
                 break;
@@ -302,17 +319,15 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
             switch (event)
             {
             case DISP_ON_TRIGGER: 	// rcvd when the motor turns on
-                LED_clear ();	// clear display
-                GFX_setRotation (settings->disp_rotation);
-                LED_writeDisplay ();
-                timeout = TIME_INFINITE;
-                state = DISP_SPEED;
+                last_speed = 0;
+                timeout = HOLD_DISPLAY_TIME_mS;
+                state = DISP_TRIG;
                 break;
             case TIMER_EXPIRY:
                 if (dot_pos == 24)
-                {	// setup and go to DISP_ON state
+                {	// setup and go to DISP_BATT state
                     timeout = MS2ST(settings->disp_dur_ms);
-                    state = DISP_ON;
+                    state = DISP_BATT;
                     display_battery_graph(false);
                     break;
                 }
@@ -325,13 +340,13 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
                 break;
             }
             break;
-        case DISP_ON:
+        case DISP_BATT:
             switch (event)
             {
             case DISP_ON_TRIGGER: 	// rcvd when the motor turns on
-                display_idle();
-                timeout = TIME_INFINITE;
-                state = DISP_SPEED;
+                last_speed = 0;
+                timeout = HOLD_DISPLAY_TIME_mS;
+                state = DISP_TRIG;
                 break;
             case TIMER_EXPIRY:
                 display_idle();
