@@ -137,8 +137,15 @@ void check_batteries (void)
     // count rolled over. Now average the results
     chMtxLock(&batt_mutex); // protect multiple access
     { // LOCKED CONTEXT
-        batteries[1] = batt_2 / (float) BATTERY_CHECK_COUNTS;
-        batteries[0] = (batt_total - batt_2) / (float) BATTERY_CHECK_COUNTS;
+        if(settings->b2Rratio == 0)
+        {
+            batteries[1] = batteries[0] = batt_total/2.0;
+        }
+        else
+        {
+            batteries[1] = batt_2 / (float) BATTERY_CHECK_COUNTS;
+            batteries[0] = (batt_total - batt_2) / (float) BATTERY_CHECK_COUNTS;
+        }
 
         batt_2 = batt_total = 0.0; // reset the totals
 
