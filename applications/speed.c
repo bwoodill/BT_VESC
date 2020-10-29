@@ -173,6 +173,12 @@ static float limit_speed_by_battery(float speed)
 
     mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
 
+    // if speed limit is not enabled, just return original speed
+    if(settings->b2Rratio == 0.0)
+    {
+        return speed;
+    }
+
     float batt_cutoff = conf->l_battery_cut_end / 2.0;
     float batt_low = conf->l_battery_cut_start / 2.0;
 

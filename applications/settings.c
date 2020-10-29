@@ -545,6 +545,11 @@ bool b2Rratio(const char *data)
         commands_printf ("invalid input.\n");
         return false;
     }
+    if(x == 0)
+    {
+        settings->b2Rratio = x;
+        return true;
+    }
     if (x < 10.0 || x > 20.0)
     {
         commands_printf ("out of range. (10.0 - 20.0)\n");
