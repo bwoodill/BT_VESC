@@ -217,10 +217,10 @@
 #define MCCONF_FOC_SL_OPENLOOP_TIME 1.0
 
 // D Current Injection Duty
-#define MCCONF_FOC_SL_D_CURRENT_DUTY 0
+#define MCCONF_FOC_SL_D_CURRENT_DUTY 0.5
 
 // D Current Injection Factor
-#define MCCONF_FOC_SL_D_CURRENT_FACTOR 0
+#define MCCONF_FOC_SL_D_CURRENT_FACTOR 1.5
 
 // Hall Table [0]
 #define MCCONF_FOC_HALL_TAB_0 255
