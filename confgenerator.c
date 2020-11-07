@@ -554,18 +554,33 @@ bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration 
 	return true;
 }
 
-void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
+void disallow_changing_most_mconf_settings(mc_configuration *conf){
+    confgenerator_set_defaults_mcconf(conf, false);
+}
+
+// mjw: Added 'all' parameter to allow calling when we want to reset most variables
+// when we disallow users from changing the majority of these variables.
+void confgenerator_set_defaults_mcconf(mc_configuration *conf, bool all) {
+
+    if (all) {
+        conf->l_in_current_max = MCCONF_L_IN_CURRENT_MAX;
+        conf->foc_current_kp = MCCONF_FOC_CURRENT_KP;
+        conf->foc_current_ki = MCCONF_FOC_CURRENT_KI;
+        conf->foc_motor_l = MCCONF_FOC_MOTOR_L;
+        conf->foc_motor_r = MCCONF_FOC_MOTOR_R;
+        conf->foc_motor_flux_linkage = MCCONF_FOC_MOTOR_FLUX_LINKAGE;
+        conf->foc_observer_gain = MCCONF_FOC_OBSERVER_GAIN;
+        conf->l_max_erpm = MCCONF_L_RPM_MAX;
+    }
 	conf->pwm_mode = MCCONF_PWM_MODE;
 	conf->comm_mode = MCCONF_COMM_MODE;
 	conf->motor_type = MCCONF_DEFAULT_MOTOR_TYPE;
 	conf->sensor_mode = MCCONF_SENSOR_MODE;
 	conf->l_current_max = MCCONF_L_CURRENT_MAX;
 	conf->l_current_min = MCCONF_L_CURRENT_MIN;
-	conf->l_in_current_max = MCCONF_L_IN_CURRENT_MAX;
 	conf->l_in_current_min = MCCONF_L_IN_CURRENT_MIN;
 	conf->l_abs_current_max = MCCONF_L_MAX_ABS_CURRENT;
 	conf->l_min_erpm = MCCONF_L_RPM_MIN;
-	conf->l_max_erpm = MCCONF_L_RPM_MAX;
 	conf->l_erpm_start = MCCONF_L_RPM_START;
 	conf->l_max_erpm_fbrake = MCCONF_L_CURR_MAX_RPM_FBRAKE;
 	conf->l_max_erpm_fbrake_cc = MCCONF_L_CURR_MAX_RPM_FBRAKE_CC;
@@ -616,10 +631,6 @@ void confgenerator_set_defaults_mcconf(mc_configuration *conf) {
 	conf->foc_sensor_mode = MCCONF_FOC_SENSOR_MODE;
 	conf->foc_pll_kp = MCCONF_FOC_PLL_KP;
 	conf->foc_pll_ki = MCCONF_FOC_PLL_KI;
-	conf->foc_motor_l = MCCONF_FOC_MOTOR_L;
-	conf->foc_motor_r = MCCONF_FOC_MOTOR_R;
-	conf->foc_motor_flux_linkage = MCCONF_FOC_MOTOR_FLUX_LINKAGE;
-	conf->foc_observer_gain = MCCONF_FOC_OBSERVER_GAIN;
 	conf->foc_observer_gain_slow = MCCONF_FOC_OBSERVER_GAIN_SLOW;
 	conf->foc_duty_dowmramp_kp = MCCONF_FOC_DUTY_DOWNRAMP_KP;
 	conf->foc_duty_dowmramp_ki = MCCONF_FOC_DUTY_DOWNRAMP_KI;
