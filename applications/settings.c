@@ -400,6 +400,23 @@ bool safe_count (const char *data)
     settings->safe_count = i;
     return true;
 }
+bool fail_count (const char *data)
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 3 || i > 50)
+    {
+        commands_printf ("out of range. (3-50)\n");
+        return false;
+    }
+    settings->fail_count = i;
+    return true;
+}
 bool f_alpha (const char *data)
 {
     float x;

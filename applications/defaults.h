@@ -69,6 +69,7 @@
 #define SAFETY_SPEED_MAX_ERPM   1500 // maximum ERPM in guard mode, when it tries to catch up as it becomes unblocked
 
 #define RUNNING_SAFE_OK_CT 	50		// count at 20Hz at which we will confirm running in water with no obstructions
+#define RUNNING_SAFE_FAIL_CT  5      // count at 20Hz at which we will fail and turn off the motor completely requiring restart
 #define SAFETY_FILTER_ALPHA 0.2
 
 // DISPLAY SETTINGS
