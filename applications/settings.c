@@ -307,9 +307,9 @@ bool guard_high (const char *data)
         commands_printf ("invalid input.\n");
         return false;
     }
-    if (x < 0.5 || x > 4.5)
+    if (x < 0.5 || x > 6)
     {
-        commands_printf ("out of range. (0.5 - 4.5)\n");
+        commands_printf ("out of range. (0.5 - 6)\n");
         return false;
     }
     settings->guard_high = x;
@@ -392,9 +392,9 @@ bool safe_count (const char *data)
         commands_printf ("invalid input.\n");
         return false;
     }
-    if (i < 3 || i > 50)
+    if (i < 3 || i > 100)
     {
-        commands_printf ("out of range. (3-50)\n");
+        commands_printf ("out of range. (3-100)\n");
         return false;
     }
     settings->safe_count = i;
