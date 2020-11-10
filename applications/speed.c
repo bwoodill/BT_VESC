@@ -239,7 +239,7 @@ static float adjust_speed (uint8_t user_setting, RUN_MODES mode)
     }
     else // mode == MODE_RUN
     {
-        #define RUNNING_MAX_ERPM  1000000 // MAX ERPM when running is just large and unrestrained.
+        #define RUNNING_MAX_ERPM  100000 // MAX ERPM when running is just large and unrestrained.
         set_max_ERPM(RUNNING_MAX_ERPM);
         set_max_current(settings->limits[user_setting]);
 
