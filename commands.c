@@ -420,7 +420,6 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_SET_MCCONF:
 		mcconf = *mc_interface_get_configuration();
 
-#ifdef _STORE_CONFIGS_
 		if (confgenerator_deserialize_mcconf(data, &mcconf)) {
 			utils_truncate_number(&mcconf.l_current_max_scale , 0.0, 1.0);
 			utils_truncate_number(&mcconf.l_current_min_scale , 0.0, 1.0);
@@ -433,6 +432,9 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			mcconf.lo_current_motor_min_now = mcconf.lo_current_min;
 
 			commands_apply_mcconf_hw_limits(&mcconf);
+#ifndef _STORE_CONFIGS_
+			disallow_changing_most_mconf_settings(&mcconf); // mjw: disallow most user settings from being changed
+#endif
 			conf_general_store_mc_configuration(&mcconf);
 			mc_interface_set_configuration(&mcconf);
 			chThdSleepMilliseconds(200);
@@ -444,9 +446,6 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		} else {
 			commands_printf("Warning: Could not set mcconf due to wrong signature");
 		}
-#else
-	    commands_printf("setting mcconf disabled");
-#endif
 
 		break;
 
@@ -455,7 +454,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		if (packet_id == COMM_GET_MCCONF) {
 			mcconf = *mc_interface_get_configuration();
 		} else {
-			confgenerator_set_defaults_mcconf(&mcconf);
+			confgenerator_set_defaults_mcconf(&mcconf, true);
 		}
 
 		commands_send_mcconf(packet_id, &mcconf);

@@ -48,6 +48,7 @@ X (float,    guard_limit,   $h, %0.2f, SAFETY_SPEED_BI_LIMIT) \
 X (uint16_t, guard_erpm,    $j, %i,    SAFETY_SPEED_ERPM) \
 X (uint16_t, guard_max_erpm,$k, %i,    SAFETY_SPEED_MAX_ERPM) \
 X (uint8_t,  safe_count,    $c, %i,    RUNNING_SAFE_OK_CT) \
+X (uint8_t,  fail_count,    $F, %i,    RUNNING_SAFE_FAIL_CT) \
 X (float,    f_alpha,       $a, %0.4f, SAFETY_FILTER_ALPHA) \
 X (uint8_t,  brightness,    $b, %i,    DISP_BRIGHTNESS) \
 X (uint8_t,  disp_rotation, $R, %i,    DISP_ROTATION) \

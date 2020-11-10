@@ -239,7 +239,7 @@ static float adjust_speed (uint8_t user_setting, RUN_MODES mode)
     }
     else // mode == MODE_RUN
     {
-        #define RUNNING_MAX_ERPM  1000000 // MAX ERPM when running is just large and unrestrained.
+        #define RUNNING_MAX_ERPM  100000 // MAX ERPM when running is just large and unrestrained.
         set_max_ERPM(RUNNING_MAX_ERPM);
         set_max_current(settings->limits[user_setting]);
 
@@ -433,7 +433,8 @@ static THD_FUNCTION(motor_ready_thread, arg) // @suppress("No return")
 
     int32_t event = SPEED_OFF;
     uint8_t running_safe_ct = 0; // count up when safety band is achieved. If it gets above threshold, indicate to
-    // speed thread that it is safe to run full speed
+                                 // speed thread that it is safe to run full speed
+    uint8_t running_fail_ct = 0; // count up when safety band is exceeded (obstruction detected)
 
     // timeout value (used as a timeout service)
     systime_t ready_timeout = TIME_INFINITE; // timeout in ticks. Use MS2ST(milliseconds) to set the value in milliseconds
@@ -470,6 +471,17 @@ static THD_FUNCTION(motor_ready_thread, arg) // @suppress("No return")
         case TIMER_EXPIRY:
             motor_amps = mc_interface_get_tot_current_filtered ();
             filtered = lpf_sample (&lpfy, motor_amps);
+
+            if (filtered < settings->guard_high)
+                running_fail_ct = 0;
+            else {
+                running_fail_ct += 1;
+                if (running_fail_ct > settings->fail_count)
+                {
+                    send_to_speed (SPEED_OFF);
+                    ready_timeout = TIME_INFINITE;
+                }
+            }
 
             if (filtered > settings->guard_high || filtered < settings->guard_low)
                 running_safe_ct = 0;

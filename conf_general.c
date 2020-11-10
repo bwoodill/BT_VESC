@@ -283,8 +283,14 @@ void conf_general_read_mc_configuration(mc_configuration *conf) {
 	}
 
 	if (!is_ok) {
-		confgenerator_set_defaults_mcconf(conf);
+		confgenerator_set_defaults_mcconf(conf, true);
 	}
+#ifndef _STORE_CONFIGS_
+    // mjw: added to prevent user from changing most of the settings
+    // overwrites most of what is in the configuration memory
+	disallow_changing_most_mconf_settings(conf);
+#endif
+
 }
 
 /**

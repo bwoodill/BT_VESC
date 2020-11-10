@@ -18,7 +18,8 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *conf);
 bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration *conf);
 
-void confgenerator_set_defaults_mcconf(mc_configuration *conf);
+void disallow_changing_most_mconf_settings(mc_configuration *conf);
+void confgenerator_set_defaults_mcconf(mc_configuration *conf, bool all);
 void confgenerator_set_defaults_appconf(app_configuration *conf);
 
 // CONFGENERATOR_H_
