@@ -211,16 +211,16 @@
 #define MCCONF_FOC_OPENLOOP_RPM 800
 
 // Openloop Hysteresis
-#define MCCONF_FOC_SL_OPENLOOP_HYST 0.05
+#define MCCONF_FOC_SL_OPENLOOP_HYST 0.1
 
 // Openloop Time
-#define MCCONF_FOC_SL_OPENLOOP_TIME 1.0
+#define MCCONF_FOC_SL_OPENLOOP_TIME 0.1
 
 // D Current Injection Duty
-#define MCCONF_FOC_SL_D_CURRENT_DUTY 0.5
+#define MCCONF_FOC_SL_D_CURRENT_DUTY 0
 
 // D Current Injection Factor
-#define MCCONF_FOC_SL_D_CURRENT_FACTOR 1.5
+#define MCCONF_FOC_SL_D_CURRENT_FACTOR 0
 
 // Hall Table [0]
 #define MCCONF_FOC_HALL_TAB_0 255
