@@ -4,3 +4,6 @@ build
 build_all/*
 bins*/*
 .dep
+.project
+.cproject
+.settings/language.settings.xml

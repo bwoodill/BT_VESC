@@ -7,11 +7,6 @@ An open source motor controller firmware.
 This is BASED ON the source code for the VESC DC/BLDC/FOC controller. Read more at  
 [https://vesc-project.com/](https://vesc-project.com/)
 
-## Supported boards
-
-All  of them!
-
-Make sure you select your board in [conf_general.h](conf_general.h)
 
 
 ## Prerequisites
@@ -27,11 +22,21 @@ sudo apt update
 sudo apt install gcc-arm-embedded
 ```
 
+Add udev rules to use the stlink v2 programmer without being root
+
+
+```bash
+wget vedder.se/Temp/49-stlinkv2.rules
+sudo mv 49-stlinkv2.rules /etc/udev/rules.d/
+sudo udevadm trigger
+```
 
 ### On MacOS
 
 Go to the [GNU ARM embedded toolchain downloads Website](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads) and select the mac version, download it and extract it to your user directory.
+
 Append the bin directory to your **$PATH**. For example:
+
 
 ```bash
 export PATH="$PATH:/Users/your-name/gcc-arm-none-eabi-8-2019-q3-update/bin/"
