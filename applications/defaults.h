@@ -23,7 +23,7 @@
 #ifndef APPLICATIONS_DIVEX_DEFAULTS_H_
 #define APPLICATIONS_DIVEX_DEFAULTS_H_
 
-#define USE_SAFETY_SPEED 1
+#define USE_SAFETY_SPEED 0
 
 // trigger timing values used for click timing
 #define TRIG_ON_TOUT_MS 400			// click timeout when trigger is on
@@ -41,6 +41,7 @@
 #define SPEEDS6 4150
 #define SPEEDS7 4450
 #define SPEEDS8 4850
+#define SPEEDS9 5500
 
 // CURRENT LIMIT PER PROGRAMMED SPEED
 #define LIMITS1 1
@@ -51,6 +52,7 @@
 #define LIMITS6 12.8
 #define LIMITS7 17
 #define LIMITS8 22.8
+#define LIMITS9 29
 
 // BATTERY DISPLAY (PER DISPLAYED BAR)
 #define DISP_BATT_VOLT1	34.0
@@ -74,7 +76,7 @@
 
 // DISPLAY SETTINGS
 #define DISP_BRIGHTNESS 6 // 0 to 15 (Max)
-#define DISP_ROTATION 1 // 0 to 3 - for fixing differences in display hardware
+#define DISP_ROTATION 0 // 0 to 3 - for fixing differences in display hardware
 #define DISP_POWER_ON_OFFTIME 10000	// after power on - milliseconds until display stops
 #define DISP_OFF_TRIGGER_BEG_MS 3000 // after OFF-TRIGGER, begin display - time for battery to settle
 #define DISP_OFF_TRIG_DURATION_MS 6000 // after OFF-TRIGGER, leave the display on for this time period

@@ -352,6 +352,12 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                 send_to_display (DISP_SPEED_1 + user_speed);
                 set_timeout(MS2ST(RAMPING_TIME_MS));
                 break;
+            case SPEED_MAX: //new max speed
+                user_speed = settings->max_speed -1;
+                adjust_speed (user_speed, MODE_RUN);
+                send_to_display (DISP_SPEED_1 + user_speed);
+                set_timeout(MS2ST(RAMPING_TIME_MS));
+                break;
             case CHECK_BATTERY:
                 adjust_speed (user_speed, MODE_RUN);
                 break;

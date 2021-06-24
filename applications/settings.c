@@ -130,6 +130,7 @@ void sikorski_set_defaults (sikorski_data *destination)
     destination->speeds[5] = SPEEDS6;
     destination->speeds[6] = SPEEDS7;
     destination->speeds[7] = SPEEDS8;
+    destination->speeds[8] = SPEEDS9;
 
     destination->limits[0] = LIMITS1;
     destination->limits[1] = LIMITS2;
@@ -139,6 +140,7 @@ void sikorski_set_defaults (sikorski_data *destination)
     destination->limits[5] = LIMITS6;
     destination->limits[6] = LIMITS7;
     destination->limits[7] = LIMITS8;
+    destination->limits[8] = LIMITS9;
 
     destination->battlevels[0] = DISP_BATT_VOLT1;
     destination->battlevels[1] = DISP_BATT_VOLT2;
@@ -221,9 +223,9 @@ bool max_speed (const char *data)
         commands_printf ("invalid input.\n");
         return false;
     }
-    if (i < 1 || i > 8)
+    if (i < 1 || i > 9)
     {
-        commands_printf ("out of range. (1-8)\n");
+        commands_printf ("out of range. (1-9)\n");
         return false;
     }
     settings->max_speed = i;
@@ -602,9 +604,9 @@ bool set_speeds (int index, const char *data)
         commands_printf ("invalid input.\n");
         return false;
     }
-    if (i < 1000 || i > 5000)
+    if (i < 1000 || i > 6000)
     {
-        commands_printf ("out of range. (1000-5000)\n");
+        commands_printf ("out of range. (1000-6000)\n");
         return false;
     }
     settings->speeds[index] = i;
@@ -620,9 +622,9 @@ bool set_limits (int index, const char *data)
         commands_printf ("invalid input.\n");
         return false;
     }
-    if (x < 0.5 || x > 23)
+    if (x < 0.5 || x > 30)
     {
-        commands_printf ("out of range. (0.5-23)\n");
+        commands_printf ("out of range. (0.5-30)\n");
         return false;
     }
     settings->limits[index] = x;
