@@ -1,13 +1,19 @@
-# VESC firmware
+# VESC firmware for Blacktip DPV
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-An open source motor controller firmware.
+An open source motor controller firmware for the Blacktip DPV with additional added features.
 
 This is BASED ON the source code for the VESC DC/BLDC/FOC controller. Read more at  
 [https://vesc-project.com/](https://vesc-project.com/)
 
+# DISCLAIMER
+----------
+Please note: everything in this repo is released for use "AS IS" without any warranties of any kind, including, but not limited to their installation, use, or performance. We disclaim any and all warranties, either express or implied, including but not limited to any warranty of noninfringement, merchantability, and/ or fitness for a particular purpose. 
 
+Any use of this repo is at your own risk. There is no guarantee that anything has been through testing. We are not responsible for any damage, data loss, death, injury, or property damage incurred with its use.
+
+You are responsible for reviewing and testing anything in this repo before using.
 
 ## Prerequisites
 
@@ -57,8 +63,8 @@ Build and flash the [bootloader](https://github.com/vedderb/bldc-bootloader) fir
 Clone and build the firmware
 
 ```bash
-git clone git@github.com:claroworks-product-development/Sikorski.git sikorski
-cd sikorski
+git clone https://github.com/bwoodill/BT_VESC.git
+cd BT_VESC
 make
 ```
 
