@@ -32,40 +32,14 @@ You are responsible for reviewing and testing anything in this repo before using
 ### On Ubuntu
 
 Install the gcc-arm-embedded toolchain
+You can download it from here
+https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads
+and unpack it in /usr/local. Make sure to use the gcc-arm-none-eabi-7-2018-q2.
 
-
+* Unpack the archive in the file manager by right-clicking on it and extract here
+* From a terminal, run
 ```bash
-sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
-sudo apt update
-sudo apt install gcc-arm-embedded
-```
-
-Add udev rules to use the stlink v2 programmer without being root
-
-
-```bash
-wget vedder.se/Temp/49-stlinkv2.rules
-sudo mv 49-stlinkv2.rules /etc/udev/rules.d/
-sudo udevadm trigger
-```
-
-### On MacOS
-
-Go to the [GNU ARM embedded toolchain downloads Website](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads) and select the mac version, download it and extract it to your user directory.
-
-Append the bin directory to your **$PATH**. For example:
-
-
-```bash
-export PATH="$PATH:/Users/your-name/gcc-arm-none-eabi-8-2019-q3-update/bin/"
-```
-
-Install stlink and openocd
-
-
-```bash
-brew install stlink
-brew install openocd
+cp -RT gcc-arm-none-eabi-7-2018-q2 /usr/local
 ```
 
 ## Build
@@ -85,7 +59,7 @@ Create the firmware
 make
 ```
 
-Use the [Vesc Tool](https://vesc-project.com/vesc_tool) (included for ubuntu, vesc_tool_1.16) to update the firmware. The firmware is in the build/ directory - BLDC_4_ChibiOS.elf
+Use the [Vesc Tool](https://vesc-project.com/vesc_tool) (included for ubuntu, vesc_tool_1.16) to update the firmware. The firmware is in the build/ directory - BLDC_4_ChibiOS.bin
 
 ## License
 
