@@ -594,6 +594,23 @@ bool logging(const char *data)
     settings->logging = i;
     return true;
 }
+bool jump_speed(const char *data)
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 1 || i > settings->max_speed)
+    {
+        commands_printf ("out of range. (See max_speed)\n");
+        return false;
+    }
+    settings->jump_speed = i;
+    return true;
+}
 
 bool set_speeds (int index, const char *data)
 {
