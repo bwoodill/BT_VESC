@@ -8,12 +8,24 @@ This is BASED ON the source code for the VESC DC/BLDC/FOC controller. Read more 
 [https://vesc-project.com/](https://vesc-project.com/)
 
 # DISCLAIMER
-----------
+
 Please note: everything in this repo is released for use "AS IS" without any warranties of any kind, including, but not limited to their installation, use, or performance. We disclaim any and all warranties, either express or implied, including but not limited to any warranty of noninfringement, merchantability, and/ or fitness for a particular purpose. 
 
 Any use of this repo is at your own risk. There is no guarantee that anything has been through testing. We are not responsible for any damage, data loss, death, injury, or property damage incurred with its use.
 
 You are responsible for reviewing and testing anything in this repo before using.
+
+# Added Features
+-Increased ERPM speed limit to 6000.
+-Added an additional speed (Speed 9).
+  This can be set in terminal with $S9 and $L9. Default is speed9 5500 and limit9 29.
+-Increased Limit to 30 amp from 23 amp.
+-Increase Motor current max to 49 amp from 40 amp.
+-Changed defaults (Use Safety 0, Disp Rot 0).
+-Added feature where three clicks will go to jump speed.
+  This can be set in termina with $J to control new jump speed setting. The default is 6.
+-Added feature where four clicks enables cruise control.
+  Clicking once (holding or releasing) will cancel cruise. Any additional clicks are processed after disabling cruise control. For example with cruise on, clicking twice and holding the second one results in cruise turning off and shifting down.
 
 ## Prerequisites
 
