@@ -57,7 +57,7 @@ typedef enum _sw_state
     SWST_CLCKD_OFF,		// third part of a double click
     SWST_CLCKD_THREE,	// triple click max speed
 	SWST_CRUISE,		// cruise control
-	SWST_CLCKD_FOUR		// four click
+	SWST_CLCKD_FOUR,	// four click
     SWST_EOL
 } SW_STATE;
 
