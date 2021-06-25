@@ -89,4 +89,7 @@
 // LOGGING
 #define LOGGING_OFF 0
 
+//JUMP SPEED
+#define JUMP_SPEED 6
+
 #endif /* APPLICATIONS_DIVEX_DEFAULTS_H_ */
