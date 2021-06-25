@@ -58,12 +58,12 @@ typedef enum _sw_state
     SWST_CLCKD_THREE,	// triple click max speed
 	SWST_CRUISE,		// cruise control
 	SWST_CLCKD_FOUR,	// four click
-	SWST_CLCKD_THREE_START, // start full speed
+	SWST_ONE_START,		// start full speed
     SWST_EOL
 } SW_STATE;
 
 const char *const sw_states[] =
-    { "SWST_OFF", "SWST_GOING_ON", "SWST_ON", "SWST_ONE_OFF", "SWST_ONE_ON", "SWST_GOING_OFF", "SWST_CLICKED", "SWST_CLCKD_OFF", "SWST_CLCKD_THREE", "SWST_CRUISE", "SWST_CLCKD_FOUR", "SWST_CLCKD_THREE_START" };
+    { "SWST_OFF", "SWST_GOING_ON", "SWST_ON", "SWST_ONE_OFF", "SWST_ONE_ON", "SWST_GOING_OFF", "SWST_CLICKED", "SWST_CLCKD_OFF", "SWST_CLCKD_THREE", "SWST_CRUISE", "SWST_CLCKD_FOUR", "SWST_ONE_START" };
 
 static THD_FUNCTION(trigger_thread, arg);
 static THD_WORKING_AREA(trigger_thread_wa, 2048);
