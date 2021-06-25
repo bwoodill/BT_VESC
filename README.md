@@ -57,8 +57,8 @@ Build and flash the [bootloader](https://github.com/vedderb/bldc-bootloader) fir
 Clone and build the firmware
 
 ```bash
-git clone git@github.com:claroworks-product-development/Sikorski.git sikorski
-cd sikorski
+git clone https://github.com/bwoodill/BT_VESC.git
+cd BT_VESC
 make
 ```
 
