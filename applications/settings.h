@@ -59,6 +59,7 @@ X (uint16_t, disp_on_ms,    $n, %i,    DISP_ON_TRIGGER_SPEED_MS) \
 X (float,    batt_imbalance,$i, %0.2f, BATTERY_MAX_IMBALANCE) \
 X (float,    b2Rratio,      $x, %0.2f, BATTERY2_SENSE_RATIO) \
 X (uint8_t,  logging,       $l, %02X,  LOGGING_OFF) \
+X (uint8_t,  jump_speed,    $J, %i,    JUMP_SPEED) \
 
 typedef struct
 {
