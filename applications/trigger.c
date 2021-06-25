@@ -55,12 +55,16 @@ typedef enum _sw_state
     SWST_GOING_OFF,		// part of first click to adjust motor speed
     SWST_CLICKED,		// second part of a single click
     SWST_CLCKD_OFF,		// third part of a double click
-    SWST_CLCKD_THREE,		// new triple click max speed
+    SWST_CLCKD_THREE,	// triple click max speed
+	SWST_CRUISE,		// cruise control
+	SWST_CLCKD_FOUR,	// four click
+	SWST_CLCKD_THREE_START, // start full speed
+	SWST_ONE_START,		// new start
     SWST_EOL
 } SW_STATE;
 
 const char *const sw_states[] =
-    { "SWST_OFF", "SWST_GOING_ON", "SWST_ON", "SWST_ONE_OFF", "SWST_ONE_ON", "SWST_GOING_OFF", "SWST_CLICKED", "SWST_CLCKD_OFF", "SWST_CLCKD_THREE" };
+    { "SWST_OFF", "SWST_GOING_ON", "SWST_ON", "SWST_ONE_OFF", "SWST_ONE_ON", "SWST_GOING_OFF", "SWST_CLICKED", "SWST_CLCKD_OFF", "SWST_CLCKD_THREE", "SWST_CRUISE", "SWST_CLCKD_FOUR", "SWST_CLCKD_THREE_START", "SWST_ONE_START" };
 
 static THD_FUNCTION(trigger_thread, arg);
 static THD_WORKING_AREA(trigger_thread_wa, 2048);
@@ -143,13 +147,25 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
         case SWST_ONE_OFF:
             if (event == SW_PRESSED)
             {
-                state = SWST_CLCKD_THREE; //changed from SWST_ONE_ON
-                timeout = MS2ST(settings->trig_off_time); //changed from TIME_INFINITE
+                state = SWST_ONE_START;
+                timeout = MS2ST(settings->trig_off_time);
                 send_to_speed (SPEED_ON);
             }
             if (event == TIMER_EXPIRY)
             {
                 state = SWST_OFF;
+                timeout = TIME_INFINITE;
+            }
+            break;
+        case SWST_ONE_START: // new initial start
+            if (event == SW_RELEASED)
+            {
+                state = SWST_CLCKD_THREE_START;
+                timeout = MS2ST(settings->trig_off_time);
+            }
+            if (event == TIMER_EXPIRY)
+            {
+                state = SWST_ONE_ON;
                 timeout = TIME_INFINITE;
             }
             break;
@@ -189,9 +205,8 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
         case SWST_CLCKD_OFF:
             if (event == SW_PRESSED)
             {
-                state = SWST_CLCKD_THREE; //changed from SWST_ONE_ON
-                timeout = MS2ST(settings->trig_on_time); //changed from TIME_INFINITE
-                send_to_speed (SPEED_UP);
+                state = SWST_CLCKD_THREE;
+                timeout = MS2ST(settings->trig_on_time);
             }
             if (event == TIMER_EXPIRY)
             {
@@ -200,14 +215,48 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
                 send_to_speed (SPEED_OFF);
             }
             break;
-        case SWST_CLCKD_THREE: //new three click max speed
+        case SWST_CLCKD_THREE_START: // three click max speed start
             if (event == SW_PRESSED)
             {
                 state = SWST_ONE_ON;
+				send_to_speed (SPEED_MAX);
                 timeout = TIME_INFINITE;
-                send_to_speed (SPEED_MAX);
+            }
+			if (event == TIMER_EXPIRY)
+            {
+                state = SWST_OFF;
+                timeout = TIME_INFINITE;
+                send_to_speed (SPEED_OFF);
+            }
+            break;
+        case SWST_CLCKD_THREE: // three click max speed
+            if (event == SW_PRESSED)
+            {
+                state = SWST_CLCKD_FOUR;
+                timeout = MS2ST(settings->trig_on_time);
             }
             if (event == TIMER_EXPIRY)
+            {
+                state = SWST_ONE_ON;
+                timeout = TIME_INFINITE;
+				send_to_speed (SPEED_UP);
+            }
+            break;
+        case SWST_CLCKD_FOUR: // four click
+            if (event == SW_PRESSED)
+            {
+                state = SWST_CRUISE;
+                timeout = TIME_INFINITE;
+            }
+            if (event == TIMER_EXPIRY)
+            {
+                state = SWST_ONE_ON;
+				send_to_speed (SPEED_MAX);
+                timeout = TIME_INFINITE;
+            }
+            break;
+        case SWST_CRUISE: // cruise
+            if (event == SW_PRESSED)
             {
                 state = SWST_ONE_ON;
                 timeout = TIME_INFINITE;
