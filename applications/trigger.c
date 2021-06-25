@@ -207,6 +207,7 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
             {
                 state = SWST_CLCKD_THREE;
                 timeout = MS2ST(settings->trig_on_time);
+				send_to_speed (SPEED_UP); // increase speed up action
             }
             if (event == TIMER_EXPIRY)
             {
@@ -239,7 +240,7 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
             {
                 state = SWST_ONE_ON;
                 timeout = TIME_INFINITE;
-				send_to_speed (SPEED_UP);
+				//send_to_speed (SPEED_UP);
             }
             break;
         case SWST_CLCKD_FOUR: // four click
