@@ -16,7 +16,7 @@ jobs:
     - name: make
       run: make
     - name: Archive code coverage results
-        uses: actions/upload-artifact@v2
-        with:
-          name: build-file-upload
-          path: build/BLDC_4_ChibiOS.bin
+      uses: actions/upload-artifact@v2
+      with:
+        name: build-file-upload
+        path: build/BLDC_4_ChibiOS.bin
