@@ -28,6 +28,58 @@ You are responsible for reviewing and testing anything in this repo before using
   * Clicking once (holding or releasing) will cancel cruise. Any additional clicks are processed after disabling cruise control. For example: with cruise on, clicking twice and holding the second one results in cruise turning off and shifting down.
 * Added a low speed migrate option that is defaulted to off. If turned on, it will not migrate your speed if your current speed is < default speed. Controlled with $e.
 
+# Terminal commands and Defaults
+$$ BT_VESC Settings
+$# (reset all)
+$w magic 27F3
+$d speed_default 3
+$M max_speed 9
+$U use_safety 0
+$T trig_on_time 400
+$t trig_off_time 500
+$r ramping 1500
+$m migrate_rate 5000
+$G guard_high 6.00
+$g guard_low 0.50
+$h guard_limit 0.30
+$j guard_erpm 900
+$k guard_max_erpm 1500
+$c safe_count 50
+$F fail_count 5
+$a f_alpha 0.2000
+$b brightness 6
+$R disp_rotation 0
+$p power_off_ms 10000
+$f disp_beg_ms 3000
+$D disp_dur_ms 6000
+$n disp_on_ms 3500
+$i batt_imbalance 2.00
+$x b2Rratio 14.00
+$l logging 00
+$J jump_speed 6
+$e low_migrate 0
+$S1 speeds1 1525
+$S2 speeds2 2300
+$S3 speeds3 3100
+$S4 speeds4 3525
+$S5 speeds5 3900
+$S6 speeds6 4150
+$S7 speeds7 4450
+$S8 speeds8 4850
+$S9 speeds9 5500
+$L1 limits1 1.00
+$L2 limits2 2.20
+$L3 limits3 3.80
+$L4 limits4 6.20
+$L5 limits5 9.60
+$L6 limits6 12.80
+$L7 limits7 17.00
+$L8 limits8 22.80
+$L9 limits9 29.00
+$B1 levels1 34.00
+$B2 levels2 36.00
+$B3 levels3 38.00
+
 ## Prerequisites
 
 ### On Ubuntu
