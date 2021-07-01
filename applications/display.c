@@ -259,7 +259,16 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
                 last_speed = 0;
                 break;
             default:
-                display_battery_graph(false);
+                //display_battery_graph(false);
+				GFX_setRotation (settings->disp_rotation);
+				GFX_setTextSize (1);
+				GFX_setTextColor (LED_ON);
+				LED_clear ();
+				GFX_setCursor (1, 0);
+				char text[2] =
+					{ 'V' };
+				GFX_print_str (text);
+				LED_writeDisplay ();
                 break;
             }
             break;

@@ -130,7 +130,7 @@ void sikorski_set_defaults (sikorski_data *destination)
     destination->speeds[5] = SPEEDS6;
     destination->speeds[6] = SPEEDS7;
     destination->speeds[7] = SPEEDS8;
-    destination->speeds[8] = SPEEDS9;
+    destination->speeds[8] = SPEEDS9; // New
 
     destination->limits[0] = LIMITS1;
     destination->limits[1] = LIMITS2;
@@ -140,7 +140,7 @@ void sikorski_set_defaults (sikorski_data *destination)
     destination->limits[5] = LIMITS6;
     destination->limits[6] = LIMITS7;
     destination->limits[7] = LIMITS8;
-    destination->limits[8] = LIMITS9;
+    destination->limits[8] = LIMITS9; //New
 
     destination->battlevels[0] = DISP_BATT_VOLT1;
     destination->battlevels[1] = DISP_BATT_VOLT2;
@@ -214,7 +214,7 @@ bool speed_default (const char *data)
     return true;
 }
 
-bool max_speed (const char *data)
+bool max_speed (const char *data) // Increased limit
 {
     int i;
     int num = sscanf (data, "%i", &i);
@@ -595,7 +595,7 @@ bool logging(const char *data)
     return true;
 }
 
-bool jump_speed(const char *data)
+bool jump_speed(const char *data) // Jump Speed
 {
     int i;
     int num = sscanf (data, "%i", &i);
@@ -613,7 +613,7 @@ bool jump_speed(const char *data)
     return true;
 }
 
-bool low_migrate(const char *data)
+bool low_migrate(const char *data) // Low speed migrate
 {
     int i;
     int num = sscanf (data, "%i", &i);
@@ -631,7 +631,7 @@ bool low_migrate(const char *data)
     return true;
 }
 
-bool set_speeds (int index, const char *data)
+bool set_speeds (int index, const char *data) // Increased limit from 5000 to 6000
 {
     int i;
     int num = sscanf (data, "%i", &i);
@@ -649,7 +649,7 @@ bool set_speeds (int index, const char *data)
     return true;
 }
 
-bool set_limits (int index, const char *data)
+bool set_limits (int index, const char *data) // Increased limit from 23 to 30
 {
     float x;
     int num = sscanf (data, "%f", &x);
