@@ -631,24 +631,6 @@ bool low_migrate(const char *data)
     return true;
 }
 
-bool low_reset (const char *data)
-{
-    int i;
-    int num = sscanf (data, "%i", &i);
-    if (num != 1)
-    {
-        commands_printf ("invalid input.\n");
-        return false;
-    }
-    if (i < 500 || i > 1000000)
-    {
-        commands_printf ("out of range. (500-1000000)\n");
-        return false;
-    }
-    settings->migrate_rate = i;
-    return true;
-}
-
 bool set_speeds (int index, const char *data)
 {
     int i;

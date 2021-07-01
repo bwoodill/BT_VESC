@@ -119,7 +119,7 @@ static bool migrate (uint8_t *speed)		// Programmed speed migrates toward the de
     if (*speed > DEFAULT_SPEED)
         (*speed)--;
     else if (*speed < DEFAULT_SPEED)
-        if(settings->low_migrate == 1)  //test enable low migrate
+        if(settings->low_migrate == 1)  // Enable low migrate
 			return true;
 		else
 			(*speed)++;

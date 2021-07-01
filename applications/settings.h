@@ -60,8 +60,7 @@ X (float,    batt_imbalance,$i, %0.2f, BATTERY_MAX_IMBALANCE) \
 X (float,    b2Rratio,      $x, %0.2f, BATTERY2_SENSE_RATIO) \
 X (uint8_t,  logging,       $l, %02X,  LOGGING_OFF) \
 X (uint8_t,  jump_speed,    $J, %i,    JUMP_SPEED) \
-X (uint32_t, low_reset,     $e, %i,    LOW_MIGRATE_RESET_MILLISECONDS) \
-X (uint8_t,  low_migrate,   $E, %i,    LOW_MIGRATE) \
+X (uint8_t,  low_migrate,   $e, %i,    LOW_MIGRATE) \
 
 typedef struct
 {
