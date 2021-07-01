@@ -26,6 +26,7 @@ You are responsible for reviewing and testing anything in this repo before using
   * This can be set in terminal with $J to control new jump speed setting. The default is 6.
 * Added feature where four clicks enables cruise control.
   * Clicking once (holding or releasing) will cancel cruise. Any additional clicks are processed after disabling cruise control. For example: with cruise on, clicking twice and holding the second one results in cruise turning off and shifting down.
+* Added a low speed migrate option that is defaulted to off. If turned on, it will not migrate your speed if your current speed is < default speed. Controlled with $e.
 
 ## Prerequisites
 
