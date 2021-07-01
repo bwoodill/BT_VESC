@@ -20,7 +20,7 @@ You are responsible for reviewing and testing anything in this repo before using
 # Added Features
 * Increased ERPM speed limit to 6000.
 * Added an additional speed (Speed 9).
-  * This can be set in terminal with $S9 and $L9. Default is speed9 5500 and limit9 29.
+  * This can be set in terminal with $S9 and $L9. Default is speed9 5500 and limit9 28.
 * Increased Limit to 30 amp from 23 amp.
 * Increase Motor current max to 49 amp from 40 amp.
 * Changed defaults (Use Safety 0, Disp Rot 0).
