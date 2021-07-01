@@ -131,7 +131,7 @@ void sikorski_set_defaults (sikorski_data *destination)
     destination->speeds[6] = SPEEDS7;
     destination->speeds[7] = SPEEDS8;
     destination->speeds[8] = SPEEDS9; // New
-    destination->speeds[9] = SPEEDSA; // New
+    destination->speeds[9] = SPEEDS10; // New
 
     destination->limits[0] = LIMITS1;
     destination->limits[1] = LIMITS2;
@@ -142,7 +142,7 @@ void sikorski_set_defaults (sikorski_data *destination)
     destination->limits[6] = LIMITS7;
     destination->limits[7] = LIMITS8;
     destination->limits[8] = LIMITS9; //New
-    destination->limits[9] = LIMITSA; //New
+    destination->limits[9] = LIMITS10; //New
 
     destination->battlevels[0] = DISP_BATT_VOLT1;
     destination->battlevels[1] = DISP_BATT_VOLT2;
