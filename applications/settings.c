@@ -151,7 +151,7 @@ void print_all (const char *data)
 {
     (void) data;
 
-    commands_printf ("$$ DIVEX Settings:\n  ----------");
+    commands_printf ("$$ BT_VESC Settings:\n  ----------");
     commands_printf ("$# (reset all)");
 
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
