@@ -26,7 +26,7 @@
 #include <stdint.h>
 
 //Size of tables
-#define MAX_SPEED_SETTING 9
+#define MAX_SPEED_SETTING 10
 #define BATT_LEVELS 3
 
 // DATA VALID MAGIC NUMBER
