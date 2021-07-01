@@ -594,6 +594,7 @@ bool logging(const char *data)
     settings->logging = i;
     return true;
 }
+
 bool jump_speed(const char *data)
 {
     int i;
@@ -609,6 +610,42 @@ bool jump_speed(const char *data)
         return false;
     }
     settings->jump_speed = i;
+    return true;
+}
+
+bool low_migrate(const char *data)
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 0 || i > 1)
+    {
+        commands_printf ("out of range. (0-1)\n");
+        return false;
+    }
+    settings->low_migrate = i;
+    return true;
+}
+
+bool low_reset (const char *data)
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 500 || i > 1000000)
+    {
+        commands_printf ("out of range. (500-1000000)\n");
+        return false;
+    }
+    settings->migrate_rate = i;
     return true;
 }
 
