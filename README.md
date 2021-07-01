@@ -4,7 +4,7 @@
 
 An open source motor controller firmware for the Blacktip DPV with additional added features.
 
-Please use the issue tracker here issues, seggestions, etc. There is also a discussion on scubaboard here https://www.scubaboard.com/community/threads/blacktip-firmware-modifications.609780/
+Please use the issue tracker here for issues, seggestions, etc. There is also a discussion on scubaboard here https://www.scubaboard.com/community/threads/blacktip-firmware-modifications.609780/
 
 This is BASED ON the source code for the VESC DC/BLDC/FOC controller and source from Dive Xtras. Read more at  
 [https://vesc-project.com/](https://vesc-project.com/) and https://github.com/claroworks-product-development/Sikorski
@@ -31,6 +31,7 @@ You are responsible for reviewing and testing anything in this repo before using
 * Added a low speed migrate option that is defaulted to off. If turned on, it will not migrate your speed if your current speed is < default speed. Controlled with $e.
 
 # Terminal commands and Defaults
+```
 $$ BT_VESC Settings
 $# (reset all)
 $w magic 27F3
@@ -81,6 +82,7 @@ $L9 limits9 29.00
 $B1 levels1 34.00
 $B2 levels2 36.00
 $B3 levels3 38.00
+```
 
 ## Prerequisites
 
