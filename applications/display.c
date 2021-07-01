@@ -160,7 +160,7 @@ void display_speed (MESSAGE speed)
     LED_clear ();
     GFX_setCursor (1, 0);
     char text[2] =
-        { '0' + new_speed, '\0' };
+        { '0' + 'R', '\0' };
     GFX_print_str (text);
     LED_writeDisplay ();
     DISP_LOG(("Write '%s'", text));
@@ -270,7 +270,7 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
             switch (event)
             {
             case TIMER_EXPIRY:
-                display_speed ("R");
+                display_speed (last_speed);
                 timeout = MS2ST(settings->disp_on_ms);
                 state = DISP_SPEED;
                 break;
@@ -282,7 +282,7 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
             if (event >= DISP_SPEED_1 && event <= DISP_SPEED_9) // don't handle above speed 9, rewrite as needed to support...
             {
                 last_speed = event;
-                display_speed ("R");
+                display_speed (last_speed);
                 timeout = MS2ST(settings->disp_on_ms);
                 break;
             }
