@@ -270,7 +270,7 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
             switch (event)
             {
             case TIMER_EXPIRY:
-                display_speed (last_speed);
+                display_speed ("R");
                 timeout = MS2ST(settings->disp_on_ms);
                 state = DISP_SPEED;
                 break;
@@ -282,10 +282,11 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
             if (event >= DISP_SPEED_1 && event <= DISP_SPEED_9) // don't handle above speed 9, rewrite as needed to support...
             {
                 last_speed = event;
-                display_speed (last_speed);
+                display_speed ("R");
                 timeout = MS2ST(settings->disp_on_ms);
                 break;
             }
+			
             switch (event)
             {
             case TIMER_EXPIRY:
