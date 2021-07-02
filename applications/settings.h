@@ -26,7 +26,7 @@
 #include <stdint.h>
 
 //Size of tables
-#define MAX_SPEED_SETTING 10
+#define MAX_SPEED_SETTING 9
 #define BATT_LEVELS 3
 
 // DATA VALID MAGIC NUMBER
@@ -61,6 +61,8 @@ X (float,    b2Rratio,      $x, %0.2f, BATTERY2_SENSE_RATIO) \
 X (uint8_t,  logging,       $l, %02X,  LOGGING_OFF) \
 X (uint8_t,  jump_speed,    $J, %i,    JUMP_SPEED) \
 X (uint8_t,  low_migrate,   $e, %i,    LOW_MIGRATE) \
+X (uint8_t,  reverse,  		$O, %i,    REVERSE) \
+X (uint16_t, reverse_speed,	$o, %i,    REVERSE_SPEED) \
 
 typedef struct
 {

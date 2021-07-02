@@ -130,8 +130,7 @@ void sikorski_set_defaults (sikorski_data *destination)
     destination->speeds[5] = SPEEDS6;
     destination->speeds[6] = SPEEDS7;
     destination->speeds[7] = SPEEDS8;
-    destination->speeds[8] = SPEEDS9; // New
-    destination->speeds[9] = SPEEDS10; // New
+    destination->speeds[8] = SPEEDS9;	// New
 
     destination->limits[0] = LIMITS1;
     destination->limits[1] = LIMITS2;
@@ -141,8 +140,7 @@ void sikorski_set_defaults (sikorski_data *destination)
     destination->limits[5] = LIMITS6;
     destination->limits[6] = LIMITS7;
     destination->limits[7] = LIMITS8;
-    destination->limits[8] = LIMITS9; //New
-    destination->limits[9] = LIMITS10; //New
+    destination->limits[8] = LIMITS9;	//New
 
     destination->battlevels[0] = DISP_BATT_VOLT1;
     destination->battlevels[1] = DISP_BATT_VOLT2;
@@ -630,6 +628,42 @@ bool low_migrate(const char *data) // Low speed migrate
         return false;
     }
     settings->low_migrate = i;
+    return true;
+}
+
+bool reverse (const char *data) // Reverse mode
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 0 || i > 1)
+    {
+        commands_printf ("out of range. (0-1)\n");
+        return false;
+    }
+    settings->reverse = i;
+    return true;
+}
+
+bool reverse_speed (int index, const char *data) // Reverse speed
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 500 || i > 3000)
+    {
+        commands_printf ("out of range. (500-3000)\n");
+        return false;
+    }
+    settings->reverse_speed] = i;
     return true;
 }
 

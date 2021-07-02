@@ -151,7 +151,7 @@ void display_battery_graph (bool initial)
 
 void display_speed (MESSAGE speed)
 {
-    char new_speed = "R"; //speed - DISP_SPEED_1 + 1;
+    int new_speed = speed - DISP_SPEED_1 + 1;
     if(new_speed > 9 || new_speed < 1)
         return;
     GFX_setRotation (settings->disp_rotation);
@@ -286,7 +286,6 @@ static THD_FUNCTION(display_thread, arg) // @suppress("No return")
                 timeout = MS2ST(settings->disp_on_ms);
                 break;
             }
-			
             switch (event)
             {
             case TIMER_EXPIRY:
