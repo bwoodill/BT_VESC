@@ -195,15 +195,30 @@ void display_speed (MESSAGE speed)
 
 void display_reverse (void)
 {
-    GFX_setRotation (settings->disp_rotation);
-    GFX_setTextSize (1);
-    GFX_setTextColor (LED_ON);
-    LED_clear ();
-    GFX_setCursor (1, 0);
-    char text[2] =
-        {'R'};
-    GFX_print_str (text);
-    LED_writeDisplay ();
+	if ((conf->m_invert_direction) == 1)
+	{
+		GFX_setRotation (settings->disp_rotation);
+		GFX_setTextSize (1);
+		GFX_setTextColor (LED_ON);
+		LED_clear ();
+		GFX_setCursor (1, 0);
+		char text[2] =
+			{'R'};
+		GFX_print_str (text);
+		LED_writeDisplay ();
+	}
+	else
+	{
+		GFX_setRotation (settings->disp_rotation);
+		GFX_setTextSize (1);
+		GFX_setTextColor (LED_ON);
+		LED_clear ();
+		GFX_setCursor (1, 0);
+		char text[2] =
+			{'F'};
+		GFX_print_str (text);
+		LED_writeDisplay ();
+	}
 }
 
 #define DISP_RATE 2

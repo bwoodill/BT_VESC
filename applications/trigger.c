@@ -278,11 +278,14 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
 					timeout = TIME_INFINITE;
 				}
             }
-			if ((event == TIMER_EXPIRY) && ((settings->reverse) == true))
-            {
-                state = SWST_ONE_ON;
-                timeout = TIME_INFINITE;
-            }
+			if ((settings->reverse) == true)
+			{
+				if (event == TIMER_EXPIRY)
+				{
+					state = SWST_ONE_ON;
+					timeout = TIME_INFINITE;
+				}
+			}
 		case SWST_CLCKD_FIVE: // Reverse
             if (event == SW_PRESSED)
             {
