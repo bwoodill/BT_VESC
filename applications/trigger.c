@@ -271,9 +271,17 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
 		case SWST_CLCKD_FIVE: // Reverse
             if (event == SW_PRESSED)
             {
-                state = SWST_OFF;
-                timeout = TIME_INFINITE;
-                send_to_speed (SPEED_OFF);
+                if (settings->reverse = 1)
+				{
+					state = SWST_OFF;
+					timeout = TIME_INFINITE;
+					send_to_speed (SPEED_OFF);
+				}
+				else
+				{
+					state = SWST_CLICKED;
+					timeout = TIME_INFINITE;
+				}
             }
 			if (event == TIMER_EXPIRY)
             {
