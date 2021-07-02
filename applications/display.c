@@ -160,7 +160,7 @@ void display_speed (MESSAGE speed)
     LED_clear ();
     GFX_setCursor (1, 0);
 	mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
-	if (conf->m_invert_direction = 1)
+	if (conf->m_invert_direction == 1)
 	{
 		char text[2] =
 			{'R'};
