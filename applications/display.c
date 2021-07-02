@@ -168,7 +168,7 @@ void display_speed (MESSAGE speed)
 
 void display_reverse (MESSAGE revt)
 {
-	char revt = "R";
+	char revt = 'R';
     GFX_setRotation (settings->disp_rotation);
     GFX_setTextSize (1);
     GFX_setTextColor (LED_ON);
