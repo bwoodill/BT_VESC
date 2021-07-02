@@ -41,12 +41,6 @@
 #include "display.h"
 #include "speed.h"
 
-#include "comm_can.h"
-#include "utils.h"
-#include "app.h"
-#include "timeout.h"
-#include "hw.h"
-
 #define QUEUE_SZ 4
 static msg_t msg_queue[QUEUE_SZ];
 mailbox_t speed_mbox;
@@ -369,7 +363,10 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                 break;
 			case REVERSE_SPEED: // Reverse speed
                 user_speed = settings->reverse_speed;
+				mc_configuration *mcconf = mempools_alloc_mcconf();
+				*mcconf = *mc_interface_get_configuration();
 				mcconf->m_invert_direction = true;
+				mc_interface_set_configuration(mcconf);
                 mc_interface_set_pid_speed (user_speed);
                 set_timeout(MS2ST(RAMPING_TIME_MS));
                 break;
