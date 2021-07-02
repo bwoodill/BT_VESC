@@ -166,15 +166,16 @@ void display_speed (MESSAGE speed)
     DISP_LOG(("Write '%s'", text));
 }
 
-void display_reverse (void)
+void display_reverse (MESSAGE rev)
 {
+	char rev = "R";
     GFX_setRotation (settings->disp_rotation);
     GFX_setTextSize (1);
     GFX_setTextColor (LED_ON);
     LED_clear ();
     GFX_setCursor (1, 0);
     char text[2] =
-        { '0' + 'F', '\0' };
+        { '0' + rev, '\0' };
     GFX_print_str (text);
     LED_writeDisplay ();
 }
