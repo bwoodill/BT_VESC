@@ -383,7 +383,7 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                 //user_speed = settings->reverse_speed;
 				//mc_configuration *mcconf = mempools_alloc_mcconf();
 				//*mcconf = *mc_interface_get_configuration();
-				//mcconf->m_invert_direction = true;
+				conf->m_invert_direction = !(conf->m_invert_direction);
 				//mc_interface_set_configuration(mcconf);
 				//set_reverse(true);
                 //adjust_speed (user_speed, MODE_RUN);
