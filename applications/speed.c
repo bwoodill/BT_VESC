@@ -361,6 +361,11 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                 send_to_display (DISP_SPEED_1 + user_speed);
                 set_timeout(MS2ST(RAMPING_TIME_MS));
                 break;
+			case REVERSE_SPEED: // Reverse speed
+                user_speed = settings->(-(reverse_speed));
+                adjust_speed (user_speed, MODE_RUN);
+                set_timeout(MS2ST(RAMPING_TIME_MS));
+                break;
             case CHECK_BATTERY:
                 adjust_speed (user_speed, MODE_RUN);
                 break;

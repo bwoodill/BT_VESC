@@ -219,7 +219,7 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
             if (event == SW_PRESSED)
             {
                 state = SWST_ONE_ON;
-				send_to_speed (JUMP_SPEED);
+				send_to_speed (REVERSE_SPEED);
                 timeout = TIME_INFINITE;
             }
 			if (event == TIMER_EXPIRY)
@@ -251,7 +251,7 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
             if (event == TIMER_EXPIRY)
             {
                 state = SWST_ONE_ON;
-				send_to_speed (JUMP_SPEED);
+				send_to_speed (REVERSE_SPEED);
                 timeout = TIME_INFINITE;
             }
             break;
