@@ -290,17 +290,9 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
 		case SWST_CLCKD_FIVE: // Reverse
             if (event == SW_PRESSED)
             {
-                if ((settings->reverse) == true)
-				{
-					state = SWST_OFF;
-					timeout = TIME_INFINITE;
-					send_to_speed (REVERSE_SPEED);
-				}
-				else
-				{
-					state = SWST_CLICKED;
-					timeout = MS2ST(settings->trig_on_time);
-				}
+				state = SWST_OFF;
+				timeout = TIME_INFINITE;
+				send_to_speed (REVERSE_SPEED);
             }
 			if (event == TIMER_EXPIRY)
             {
