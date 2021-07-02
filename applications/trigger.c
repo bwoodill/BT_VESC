@@ -279,7 +279,7 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
 				else
 				{
 					state = SWST_CLICKED;
-					timeout = TIME_INFINITE;
+					timeout = MS2ST(settings->trig_on_time);
 				}
             }
 			if (event == TIMER_EXPIRY)
