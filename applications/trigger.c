@@ -248,7 +248,7 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
             {
 				if ((settings->reverse) == 1)
 				{
-					state = SWST_CRUISE;
+					state = SWST_CRUISE_R;
 					timeout = MS2ST(settings->trig_on_time);
 				}
 				else 
@@ -267,24 +267,21 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
         case SWST_CRUISE: // cruise
             if (event == SW_PRESSED)
             {
-				if ((settings->reverse) == 1)
-				{
-					state = SWST_CLCKD_FIVE;
-					timeout = MS2ST(settings->trig_on_time);
-				}
-				else
-				{
-					state = SWST_ONE_ON;
-					timeout = TIME_INFINITE;
-				}
+				state = SWST_ONE_ON;
+				timeout = TIME_INFINITE;
             }
-			if ((settings->reverse) == 1)
+			break;
+		case SWST_CRUISE_R: // cruise reverse enabled
+            if (event == SW_PRESSED)
+            {
+				state = SWST_CLCKD_FIVE;
+				timeout = MS2ST(settings->trig_on_time);				
+            }
+			if (event == TIMER_EXPIRY)
 			{
-				if (event == TIMER_EXPIRY)
-				{
-					state = SWST_ONE_ON;
-					timeout = TIME_INFINITE;
-				}
+				state = SWST_ONE_ON;
+				timeout = TIME_INFINITE;
+			}
 			}
 			break;
 		case SWST_CLCKD_FIVE: // Reverse
