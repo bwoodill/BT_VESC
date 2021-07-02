@@ -19,4 +19,4 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: firmware
-        path: build/BLDC_4_BT_VESC_V2.2.bin
+        path: build/BLDC_4_BT_VESC.bin
