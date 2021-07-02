@@ -173,9 +173,9 @@ void display_reverse (void)
     GFX_setTextColor (LED_ON);
     LED_clear ();
     GFX_setCursor (1, 0);
-    //char text[2] =
-    //    {'r'};
-    GFX_print_str ('R');
+    char text[2] =
+        {'r'};
+    GFX_print_str (text);
     LED_writeDisplay ();
 }
 
