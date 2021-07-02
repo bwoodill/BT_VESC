@@ -370,7 +370,8 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                 break;
 			case REVERSE_SPEED: // Reverse speed
 				state = MOTOR_OFF;
-				send_to_display (DISP_OFF_TRIGGER);
+				//send_to_display (DISP_OFF_TRIGGER);
+				display_reverse();
                 //set_timeout(0);
 				user_speed = 0;
                 //mc_interface_set_pid_speed (0);
