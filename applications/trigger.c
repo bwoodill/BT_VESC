@@ -259,7 +259,7 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
         case SWST_CRUISE: // cruise
             if (event == SW_PRESSED)
             {
-                state = SWST_REVERSE;
+                state = SWST_CLCKD_FIVE;
                 timeout = MS2ST(settings->trig_on_time);
             }
 			if (event == TIMER_EXPIRY)
