@@ -195,6 +195,7 @@ void display_speed (MESSAGE speed)
 
 void display_reverse (void)
 {
+	mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
 	if ((conf->m_invert_direction) == 1)
 	{
 		GFX_setRotation (settings->disp_rotation);
