@@ -649,7 +649,7 @@ bool reverse (const char *data) // Reverse mode
     return true;
 }
 
-bool reverse_speed (int index, const char *data) // Reverse speed
+bool reverse_speed (const char *data) // Reverse speed
 {
     int i;
     int num = sscanf (data, "%i", &i);
