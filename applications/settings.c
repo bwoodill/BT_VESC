@@ -663,7 +663,7 @@ bool reverse_speed (int index, const char *data) // Reverse speed
         commands_printf ("out of range. (500-3000)\n");
         return false;
     }
-    settings->reverse_speed] = i;
+    settings->reverse_speed = i;
     return true;
 }
 
