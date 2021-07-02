@@ -163,7 +163,7 @@ void display_speed (MESSAGE speed)
     LED_clear ();
     GFX_setCursor (1, 0);
 	char text[2] =
-        {'X'};
+        {'R'};
     GFX_print_str (text);
     LED_writeDisplay ();
 	chThdSleepMilliseconds(500);
