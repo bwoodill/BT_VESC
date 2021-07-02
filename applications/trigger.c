@@ -58,13 +58,14 @@ typedef enum _sw_state
     SWST_CLCKD_THREE,	// triple click max speed
 	SWST_CRUISE,		// cruise control
 	SWST_CLCKD_FOUR,	// four click
+	SWST_CLCKD_FIVE,	// Five Click Reverse
 	SWST_CLCKD_THREE_START, // start full speed
 	SWST_ONE_START,		// new start
     SWST_EOL
 } SW_STATE;
 
 const char *const sw_states[] =
-    { "SWST_OFF", "SWST_GOING_ON", "SWST_ON", "SWST_ONE_OFF", "SWST_ONE_ON", "SWST_GOING_OFF", "SWST_CLICKED", "SWST_CLCKD_OFF", "SWST_CLCKD_THREE", "SWST_CRUISE", "SWST_CLCKD_FOUR", "SWST_CLCKD_THREE_START", "SWST_ONE_START" };
+    { "SWST_OFF", "SWST_GOING_ON", "SWST_ON", "SWST_ONE_OFF", "SWST_ONE_ON", "SWST_GOING_OFF", "SWST_CLICKED", "SWST_CLCKD_OFF", "SWST_CLCKD_THREE", "SWST_CRUISE", "SWST_CLCKD_FOUR", "SWST_CLCKD_FIVE", "SWST_CLCKD_THREE_START", "SWST_ONE_START" };
 
 static THD_FUNCTION(trigger_thread, arg);
 static THD_WORKING_AREA(trigger_thread_wa, 2048);
@@ -267,7 +268,7 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
 				send_to_speed (JUMP_SPEED);
                 timeout = TIME_INFINITE;
             }
-		case SWST_REVERSE: // Reverse
+		case SWST_CLCKD_FIVE: // Reverse
             if (event == SW_PRESSED)
             {
                 state = SWST_OFF;
