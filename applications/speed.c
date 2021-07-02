@@ -364,7 +364,7 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
 			case REVERSE_SPEED: // Reverse speed
                 user_speed = settings->reverse_speed;
 				user_speed = -600;
-                mc_interface_set_pid_speed (user_speed);
+                mc_interface_set_pid_speed (-600);
                 set_timeout(MS2ST(RAMPING_TIME_MS));
                 break;
             case CHECK_BATTERY:
