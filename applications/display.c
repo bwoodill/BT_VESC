@@ -166,7 +166,7 @@ void display_speed (MESSAGE speed)
         {'X'};
     GFX_print_str (text);
     LED_writeDisplay ();
-	timeout = 2000;
+	chThdSleepMilliseconds(5000);
 	LED_clear ();
     GFX_setCursor (1, 0);
 	char text2[2] =
