@@ -41,6 +41,8 @@
 #include "display.h"
 #include "speed.h"
 
+#include "comm_can.h"
+
 #define QUEUE_SZ 4
 static msg_t msg_queue[QUEUE_SZ];
 mailbox_t speed_mbox;
