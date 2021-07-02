@@ -246,8 +246,16 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
         case SWST_CLCKD_FOUR: // four click
             if (event == SW_PRESSED)
             {
-                state = SWST_CRUISE;
-                timeout = TIME_INFINITE;
+				if ((settings->reverse) == 1)
+				{
+					state = SWST_CRUISE;
+					timeout = MS2ST(settings->trig_on_time);
+				}
+				else 
+				{
+					state = SWST_CRUISE;
+					timeout = TIME_INFINITE;
+				}
             }
             if (event == TIMER_EXPIRY)
             {
@@ -258,6 +266,43 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
             break;
         case SWST_CRUISE: // cruise
             if (event == SW_PRESSED)
+            {
+				if ((settings->reverse) == 1)
+				{
+					state = SWST_CLCKD_FIVE;
+					timeout = MS2ST(settings->trig_on_time);
+				}
+				else
+				{
+					state = SWST_ONE_ON;
+					timeout = TIME_INFINITE;
+				}
+            }
+			if ((settings->reverse) == 1)
+			{
+				if (event == TIMER_EXPIRY)
+				{
+					state = SWST_ONE_ON;
+					timeout = TIME_INFINITE;
+				}
+			}
+			break;
+		case SWST_CLCKD_FIVE: // Reverse
+            if (event == SW_PRESSED)
+            {
+                if ((settings->reverse) == true)
+				{
+					state = SWST_OFF;
+					timeout = TIME_INFINITE;
+					send_to_speed (REVERSE_SPEED);
+				}
+				else
+				{
+					state = SWST_CLICKED;
+					timeout = MS2ST(settings->trig_on_time);
+				}
+            }
+			if (event == TIMER_EXPIRY)
             {
                 state = SWST_ONE_ON;
                 timeout = TIME_INFINITE;

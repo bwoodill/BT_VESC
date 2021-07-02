@@ -93,7 +93,7 @@
 #define JUMP_SPEED 6
 
 // LOW MIGRATE
-#define LOW_MIGRATE 0
+#define LOW_MIGRATE 1
 
 // REVERSE
 #define REVERSE 1
