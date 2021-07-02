@@ -166,7 +166,7 @@ void display_speed (MESSAGE speed)
     DISP_LOG(("Write '%s'", text));
 }
 
-void display_reverse (MESSAGE revt)
+void display_reverse (void)
 {
 	char revt = 'R';
     GFX_setRotation (settings->disp_rotation);
