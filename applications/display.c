@@ -151,7 +151,7 @@ void display_battery_graph (bool initial)
 
 void display_speed (MESSAGE speed)
 {
-    int new_speed = speed - DISP_SPEED_1 + 1;
+    char new_speed = "R"; //speed - DISP_SPEED_1 + 1;
     if(new_speed > 9 || new_speed < 1)
         return;
     GFX_setRotation (settings->disp_rotation);
@@ -161,7 +161,7 @@ void display_speed (MESSAGE speed)
     GFX_setCursor (1, 0);
     char text[2] =
         { '0' + new_speed, '\0' };
-    GFX_print_str ("R");
+    GFX_print_str (text);
     LED_writeDisplay ();
     DISP_LOG(("Write '%s'", text));
 }
