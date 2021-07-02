@@ -152,7 +152,7 @@ void display_battery_graph (bool initial)
 void display_speed (MESSAGE speed)
 {
 	mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
-	if (conf->m_invert_direction = 1)
+	if ((conf->m_invert_direction) == 1)
 	{
     int new_speed = speed - DISP_SPEED_1 + 1;
     if(new_speed > 9 || new_speed < 1)
