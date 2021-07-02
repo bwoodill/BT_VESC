@@ -247,7 +247,10 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
             if (event == SW_PRESSED)
             {
                 state = SWST_CRUISE;
-                timeout = MS2ST(settings->trig_on_time);
+				if (settings->reverse == 1)
+					timeout = MS2ST(settings->trig_on_time);
+				else 
+					timeout = TIME_INFINITE;
             }
             if (event == TIMER_EXPIRY)
             {
@@ -259,8 +262,16 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
         case SWST_CRUISE: // cruise
             if (event == SW_PRESSED)
             {
-                state = SWST_CLCKD_FIVE;
-                timeout = MS2ST(settings->trig_on_time);
+				if (settings->reverse == 1)
+				{
+					state = SWST_CLCKD_FIVE;
+					timeout = MS2ST(settings->trig_on_time);
+				}
+				else
+				{
+					state = SWST_ONE_ON;
+					timeout = TIME_INFINITE;
+				}
             }
 			if (event == TIMER_EXPIRY)
             {
