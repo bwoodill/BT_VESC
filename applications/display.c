@@ -163,7 +163,7 @@ void display_speed (MESSAGE speed)
     LED_clear ();
     GFX_setCursor (1, 0);
 	char text[2] =
-        {'X'};
+        {'X' + new_speed};
     GFX_print_str (text);
     LED_writeDisplay ();
     DISP_LOG(("Write '%s'", text));
