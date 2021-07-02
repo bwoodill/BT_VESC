@@ -159,8 +159,17 @@ void display_speed (MESSAGE speed)
     GFX_setTextColor (LED_ON);
     LED_clear ();
     GFX_setCursor (1, 0);
-    char text[2] =
-        { '0' + new_speed, '\0' };
+	mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
+	if (conf->m_invert_direction = 1)
+	{
+		char text[2] =
+			{'R'};
+	}
+	else
+	{
+		char text[2] =
+			{ '0' + new_speed, '\0' };
+	}
     GFX_print_str (text);
     LED_writeDisplay ();
     DISP_LOG(("Write '%s'", text));
