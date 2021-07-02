@@ -363,7 +363,7 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                 break;
 			case REVERSE_SPEED: // Reverse speed
                 user_speed = settings->reverse_speed;
-				user_speed = -abs(user_speed);
+				user_speed = -600;
                 adjust_speed (user_speed, MODE_RUN);
                 set_timeout(MS2ST(RAMPING_TIME_MS));
                 break;
