@@ -42,6 +42,10 @@
 #include "speed.h"
 
 #include "comm_can.h"
+#include "utils.h"
+#include "app.h"
+#include "timeout.h"
+#include "hw.h"
 
 #define QUEUE_SZ 4
 static msg_t msg_queue[QUEUE_SZ];
