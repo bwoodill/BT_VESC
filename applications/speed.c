@@ -155,10 +155,10 @@ static void set_max_current (float max_current)
 }
 
 //This enables reverse
-static void set_reverse (bool set_reverse)
+static void set_reverse (bool reverse)
 {
     mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
-    conf->m_invert_direction = set_reverse;
+    conf->m_invert_direction = reverse;
 }
 
 // this limits the motor attempting to 'catch up' with it's programmed position when
@@ -374,7 +374,7 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
 				//*mcconf = *mc_interface_get_configuration();
 				//mcconf->m_invert_direction = true;
 				//mc_interface_set_configuration(mcconf);
-				set_reverse = true;
+				set_reverse(true);
                 mc_interface_set_pid_speed (user_speed);
                 set_timeout(MS2ST(RAMPING_TIME_MS));
                 break;
