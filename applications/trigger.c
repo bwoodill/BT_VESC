@@ -265,7 +265,6 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
 			if (event == TIMER_EXPIRY)
             {
                 state = SWST_ONE_ON;
-				send_to_speed (JUMP_SPEED);
                 timeout = TIME_INFINITE;
             }
 		case SWST_CLCKD_FIVE: // Reverse
@@ -275,7 +274,7 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
 				{
 					state = SWST_OFF;
 					timeout = TIME_INFINITE;
-					send_to_speed (SPEED_OFF);
+					send_to_speed (REVERSE_SPEED);
 				}
 				else
 				{

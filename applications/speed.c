@@ -369,12 +369,14 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                 set_timeout(MS2ST(RAMPING_TIME_MS));
                 break;
 			case REVERSE_SPEED: // Reverse speed
-                user_speed = settings->reverse_speed;
+				state = MOTOR_OFF;
+				adjust_speed (0, MODE_START);
+                //user_speed = settings->reverse_speed;
 				//mc_configuration *mcconf = mempools_alloc_mcconf();
 				//*mcconf = *mc_interface_get_configuration();
 				//mcconf->m_invert_direction = true;
 				//mc_interface_set_configuration(mcconf);
-				set_reverse(true);
+				//set_reverse(true);
                 //adjust_speed (user_speed, MODE_RUN);
                 //set_timeout(MS2ST(RAMPING_TIME_MS));
                 break;

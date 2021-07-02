@@ -96,7 +96,7 @@
 #define LOW_MIGRATE 0
 
 // REVERSE
-#define REVERSE 0
+#define REVERSE 1
 
 // REVERSE
 #define REVERSE_SPEED 500
