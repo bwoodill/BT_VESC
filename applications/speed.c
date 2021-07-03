@@ -231,6 +231,8 @@ static float adjust_speed (uint8_t user_setting, RUN_MODES mode)
 {
     static float present_speed = 0.0;      // speed that motor is set to.
 
+	mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
+				
     if (mode == MODE_OFF)
     {
         present_speed = 0.0;
@@ -244,7 +246,13 @@ static float adjust_speed (uint8_t user_setting, RUN_MODES mode)
         present_speed = settings->guard_erpm;
         present_speed = limit_speed_by_battery(present_speed);
         set_max_ERPM(settings->guard_max_erpm);
-        mc_interface_set_pid_speed (present_speed);
+		if ((conf->m_invert_direction) == 1)
+		{
+			present_speed = (present_speed)/2;
+			mc_interface_set_pid_speed (present_speed);
+		}
+		else
+			mc_interface_set_pid_speed (present_speed);
         return present_speed;
     }
     else // mode == MODE_RUN
@@ -256,7 +264,13 @@ static float adjust_speed (uint8_t user_setting, RUN_MODES mode)
         // ramp from the present speed toward the desired speed from user setting
         present_speed = ramping (present_speed, get_limited_speed(user_setting));
 
-        mc_interface_set_pid_speed (present_speed);
+        if ((conf->m_invert_direction) == 1)
+		{
+			present_speed = (present_speed)/2;
+			mc_interface_set_pid_speed (present_speed);
+		}
+		else
+			mc_interface_set_pid_speed (present_speed);
     }
 
     #if(SPEED_LOG == 1)
