@@ -248,8 +248,7 @@ static float adjust_speed (uint8_t user_setting, RUN_MODES mode)
         set_max_ERPM(settings->guard_max_erpm);
 		if ((conf->m_invert_direction) == 1)
 		{
-			present_speed = (present_speed)/2;
-			mc_interface_set_pid_speed (present_speed);
+			mc_interface_set_pid_speed ((present_speed / 2));
 		}
 		else
 			mc_interface_set_pid_speed (present_speed);
@@ -266,8 +265,7 @@ static float adjust_speed (uint8_t user_setting, RUN_MODES mode)
 
         if ((conf->m_invert_direction) == 1)
 		{
-			present_speed = (present_speed)/2;
-			mc_interface_set_pid_speed (present_speed);
+			mc_interface_set_pid_speed ((present_speed / 2));
 		}
 		else
 			mc_interface_set_pid_speed (present_speed);
