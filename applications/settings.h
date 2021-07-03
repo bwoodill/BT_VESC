@@ -62,7 +62,6 @@ X (uint8_t,  logging,       $l, %02X,  LOGGING_OFF) \
 X (uint8_t,  jump_speed,    $J, %i,    JUMP_SPEED) \
 X (uint8_t,  low_migrate,   $e, %i,    LOW_MIGRATE) \
 X (uint8_t,  reverse,  		$O, %i,    REVERSE) \
-X (uint16_t, reverse_speed,	$o, %i,    REVERSE_SPEED) \
 
 typedef struct
 {

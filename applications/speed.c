@@ -246,7 +246,8 @@ static float adjust_speed (uint8_t user_setting, RUN_MODES mode)
         present_speed = settings->guard_erpm;
         present_speed = limit_speed_by_battery(present_speed);
         set_max_ERPM(settings->guard_max_erpm);
-		if ((conf->m_invert_direction) == 1)
+		
+		if ((conf->m_invert_direction) == 1) //reverse have speed
 		{
 			mc_interface_set_pid_speed ((present_speed / 2));
 		}
@@ -263,7 +264,7 @@ static float adjust_speed (uint8_t user_setting, RUN_MODES mode)
         // ramp from the present speed toward the desired speed from user setting
         present_speed = ramping (present_speed, get_limited_speed(user_setting));
 
-        if ((conf->m_invert_direction) == 1)
+        if ((conf->m_invert_direction) == 1) //reverse half speed
 		{
 			mc_interface_set_pid_speed ((present_speed / 2));
 		}
@@ -382,26 +383,13 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                 break;
 			case REVERSE_SPEED: // Reverse speed
 				state = MOTOR_OFF;
-				//send_to_display (DISP_OFF_TRIGGER);
 				display_reverse();
-                //set_timeout(0);
 				user_speed = 0;
-                //mc_interface_set_pid_speed (0);
                 adjust_speed (user_speed, MODE_OFF);
 				set_timeout(MS2ST(settings->migrate_rate));
-				//set_timeout(TIME_INFINITE);
-                //send_to_display (DISP_SPEED_1 + user_speed);
 				settings->low_migrate = 1;
-				//adjust_speed (0, MODE_START);
-                //user_speed = settings->reverse_speed;
-				//mc_configuration *mcconf = mempools_alloc_mcconf();
-				//*mcconf = *mc_interface_get_configuration();
 				mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
 				conf->m_invert_direction = !(conf->m_invert_direction);
-				//mc_interface_set_configuration(mcconf);
-				//set_reverse(true);
-                //adjust_speed (user_speed, MODE_RUN);
-                //set_timeout(MS2ST(RAMPING_TIME_MS));
                 break;
             case CHECK_BATTERY:
                 adjust_speed (user_speed, MODE_RUN);

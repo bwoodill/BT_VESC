@@ -649,24 +649,6 @@ bool reverse (const char *data) // Reverse mode
     return true;
 }
 
-bool reverse_speed (const char *data) // Reverse speed
-{
-    int i;
-    int num = sscanf (data, "%i", &i);
-    if (num != 1)
-    {
-        commands_printf ("invalid input.\n");
-        return false;
-    }
-    if (i < 500 || i > 3000)
-    {
-        commands_printf ("out of range. (500-3000)\n");
-        return false;
-    }
-    settings->reverse_speed = i;
-    return true;
-}
-
 bool set_speeds (int index, const char *data) // Increased limit from 5000 to 6000
 {
     int i;
