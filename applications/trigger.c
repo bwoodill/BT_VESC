@@ -278,11 +278,6 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
 				state = SWST_CLCKD_FIVE;
 				timeout = MS2ST(settings->trig_on_time);				
             }
-			if (event == TIMER_EXPIRY)
-			{
-				state = SWST_ONE_ON;
-				timeout = TIME_INFINITE;
-			}
 			break;
 		case SWST_CLCKD_FIVE: // Reverse
             if (event == SW_PRESSED)
