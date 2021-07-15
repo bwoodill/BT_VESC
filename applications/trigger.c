@@ -309,9 +309,9 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
             }
             if (event == TIMER_EXPIRY)
             {
-                state = SWST_OFF;
+                state = SWST_ONE_ON;
                 timeout = TIME_INFINITE;
-                send_to_speed (SPEED_OFF);
+				send_to_speed (SPEED_UP);
             }
             break;
 		case SWST_CLCKD_THREE_OFF: // released after three clicks, execute three click

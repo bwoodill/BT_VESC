@@ -63,7 +63,7 @@ X (uint8_t,  cruise,	    $C, %i,    CRUISE) \
 X (uint8_t,  jump,		    $J, %i,    JUMP) \
 X (uint8_t,  jump_speed,    $K, %i,    JUMP_SPEED) \
 X (uint8_t,  low_migrate,   $e, %i,    LOW_MIGRATE) \
-X (uint8_t,  reverse,  		$B, %i,    REVERSE) \
+X (uint8_t,  reverse,  		$E, %i,    REVERSE) \
 
 typedef struct
 {
