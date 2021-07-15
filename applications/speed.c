@@ -156,11 +156,11 @@ static void set_max_current (float max_current)
 }
 
 //This enables reverse
-static void set_reverse (bool reverse)
-{
-    mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
-    conf->m_invert_direction = reverse;
-}
+//static void set_reverse (bool reverse)
+//{
+//    mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
+//    conf->m_invert_direction = reverse;
+//}
 
 // this limits the motor attempting to 'catch up' with it's programmed position when
 // it gets blocked (especially in safety mode), otherwise it lurches up attempting to recover
