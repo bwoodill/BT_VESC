@@ -39,6 +39,8 @@ typedef enum _msgs
     SPEED_ON,
     SPEED_UP,
     SPEED_DOWN,
+    JUMP_SPEED_START,
+    REVERSE_SPEED_START,
     JUMP_SPEED,
     REVERSE_SPEED,
     SPEED_READY,	// from the READY thread - notifies that scooter is ready to run
