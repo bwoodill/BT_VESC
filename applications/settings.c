@@ -705,7 +705,7 @@ bool set_speeds (int index, const char *data) // Increased limit from 5000 to 60
     return true;
 }
 
-bool set_limits (int index, const char *data) // Increased limit from 23 to 30
+bool set_limits (int index, const char *data) // Increased limit from 23 to 29
 {
     float x;
     int num = sscanf (data, "%f", &x);
@@ -714,9 +714,9 @@ bool set_limits (int index, const char *data) // Increased limit from 23 to 30
         commands_printf ("invalid input.\n");
         return false;
     }
-    if (x < 0.5 || x > 30)
+    if (x < 0.5 || x > 29)
     {
-        commands_printf ("out of range. (0.5-30)\n");
+        commands_printf ("out of range. (0.5-29)\n");
         return false;
     }
     settings->limits[index] = x;
