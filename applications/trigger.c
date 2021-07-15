@@ -305,7 +305,7 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
         case SWST_CLCKD_OFF:	//clicked one before, process second click
             if (event == SW_PRESSED)
             {
-                state = SWST_CLCKD_THREE;
+                state = SWST_CLCKD_TWO_OFF;
                 timeout = MS2ST(settings->trig_on_time);
             }
             if (event == TIMER_EXPIRY)
