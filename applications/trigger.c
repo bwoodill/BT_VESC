@@ -372,7 +372,7 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
             }
             if (event == TIMER_EXPIRY)
             {
-				if (settings->cruise) == 1)
+				if ((settings->cruise) == 1)
 				{
 					state = SWST_CRUISE;
 					timeout = TIME_INFINITE;
@@ -401,7 +401,7 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
             }
 			if (event == TIMER_EXPIRY)
             {
-                if (settings->cruise) == 1)
+                if ((settings->cruise) == 1)
 				{
 					state = SWST_CRUISE;
 					timeout = TIME_INFINITE;
