@@ -346,6 +346,22 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                     send_to_display (DISP_SPEED_1 + user_speed);
                 }
                 break;
+			case JUMP_SPEED: //new jump speed
+                user_speed = settings->jump_speed -1;
+                adjust_speed (user_speed, MODE_RUN);
+                send_to_display (DISP_SPEED_1 + user_speed);
+                set_timeout(MS2ST(RAMPING_TIME_MS));
+                break;
+			case REVERSE_SPEED: // Reverse speed
+				state = MOTOR_OFF;
+				display_reverse();
+				user_speed = 0;
+                adjust_speed (user_speed, MODE_OFF);
+				set_timeout(MS2ST(settings->migrate_rate));
+				//settings->low_migrate = 1;
+				mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
+				conf->m_invert_direction = !(conf->m_invert_direction);
+                break;
             case CHECK_BATTERY:
                 break;
             case TIMER_EXPIRY:
