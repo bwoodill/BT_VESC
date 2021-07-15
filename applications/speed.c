@@ -116,10 +116,11 @@ static void decrease (uint8_t *speed)
 
 static bool migrate (uint8_t *speed)		// Programmed speed migrates toward the default speed. Return true if it got there.
 {
-    if (*speed > DEFAULT_SPEED)
+	mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
+	if (*speed > DEFAULT_SPEED)
         (*speed)--;
     else if (*speed < DEFAULT_SPEED)
-        if(settings->low_migrate == 1)  // Enable low migrate
+        if(settings->low_migrate == 1 || (conf->m_invert_direction) == 1)  // Enable low migrate
 			return true;
 		else
 			(*speed)++;
@@ -387,7 +388,7 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
 				user_speed = 0;
                 adjust_speed (user_speed, MODE_OFF);
 				set_timeout(MS2ST(settings->migrate_rate));
-				settings->low_migrate = 1;
+				//settings->low_migrate = 1;
 				mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
 				conf->m_invert_direction = !(conf->m_invert_direction);
                 break;
