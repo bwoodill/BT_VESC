@@ -595,6 +595,44 @@ bool logging(const char *data)
     return true;
 }
 
+
+bool cruise(const char *data) // Cruise
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 0 || i > 1)
+    {
+        commands_printf ("out of range. (0-1)\n");
+        return false;
+    }
+    settings->cruise = i;
+    return true;
+}
+
+
+bool jump(const char *data) // Jump
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 0 || i > 1)
+    {
+        commands_printf ("out of range. (0-1)\n");
+        return false;
+    }
+    settings->jump = i;
+    return true;
+}
+
 bool jump_speed(const char *data) // Jump Speed
 {
     int i;

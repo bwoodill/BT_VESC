@@ -41,7 +41,7 @@
 #define SPEEDS6 4150
 #define SPEEDS7 4450
 #define SPEEDS8 4850
-#define SPEEDS9 5500
+#define SPEEDS9 5000	//my default 5500
 
 // CURRENT LIMIT PER PROGRAMMED SPEED
 #define LIMITS1 1
@@ -52,7 +52,7 @@
 #define LIMITS6 12.8
 #define LIMITS7 17
 #define LIMITS8 22.8
-#define LIMITS9 28
+#define LIMITS9 23		//my default 28
 
 // BATTERY DISPLAY (PER DISPLAYED BAR)
 #define DISP_BATT_VOLT1	34.0
@@ -89,13 +89,19 @@
 // LOGGING
 #define LOGGING_OFF 0
 
+// CRUISE
+#define CRUISE 0			//my default 1
+
+// JUMP
+#define JUMP 0			//my default 1
+
 // JUMP SPEED
 #define JUMP_SPEED 6
 
 // LOW MIGRATE
-#define LOW_MIGRATE 1
+#define LOW_MIGRATE 0	//my default 1
 
 // REVERSE
-#define REVERSE 1
+#define REVERSE 0		//my default 1
 
 #endif /* APPLICATIONS_DIVEX_DEFAULTS_H_ */
