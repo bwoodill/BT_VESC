@@ -216,7 +216,7 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
             }
 			if (event == TIMER_EXPIRY)
             {
-				if (settings->jump) == 1)
+				if ((settings->jump) == 1)
 				{
 					state = SWST_ONE_ON;
 					send_to_speed (JUMP_SPEED);
