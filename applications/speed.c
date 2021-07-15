@@ -346,14 +346,14 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                     send_to_display (DISP_SPEED_1 + user_speed);
                 }
                 break;
-			case JUMP_SPEED: //new jump speed
+			case JUMP_SPEED_START: //new jump speed
 				state = MOTOR_ON;
 				set_timeout(MS2ST(RAMPING_TIME_MS));
 				user_speed = settings->jump_speed -1;
 				adjust_speed (user_speed, MODE_RUN);
 				send_to_display (DISP_SPEED_1 + user_speed);
                 break;
-			case REVERSE_SPEED: // Reverse speed
+			case REVERSE_SPEED_START: // Reverse speed
 				state = MOTOR_OFF;
 				display_reverse();
 				user_speed = 0;
