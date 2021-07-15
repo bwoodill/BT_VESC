@@ -66,11 +66,13 @@ typedef enum _sw_state
 	SWST_CLCKD_TWO_OFF,	//released after two clicks, execute second click
 	SWST_CLCKD_THREE_OFF, // released after three clicks, execute three click
 	SWST_CLCKD_FOUR_OFF, //released after four clicks, execute four click
+	SWST_CLCKD_FOUR_OFF_START, //released after four clicks, execute four click
+	SWST_CLCKD_FIVE_OFF, //released after four clicks, execute four click
     SWST_EOL
 } SW_STATE;
 
 const char *const sw_states[] =
-    { "SWST_OFF", "SWST_GOING_ON", "SWST_ON", "SWST_ONE_OFF", "SWST_ONE_ON", "SWST_GOING_OFF", "SWST_CLICKED", "SWST_CLCKD_OFF", "SWST_CLCKD_THREE", "SWST_CRUISE", "SWST_CLCKD_FOUR", "SWST_CLCKD_FIVE", "SWST_CLCKD_THREE_START", "SWST_CLCKD_FOUR_START", "SWST_CLCKD_REV_START", "SWST_CLCKD_TWO_OFF", "SWST_CLCKD_THREE_OFF", "SWST_CLCKD_FOUR_OFF", "SWST_ONE_START" };
+    { "SWST_OFF", "SWST_GOING_ON", "SWST_ON", "SWST_ONE_OFF", "SWST_ONE_ON", "SWST_GOING_OFF", "SWST_CLICKED", "SWST_CLCKD_OFF", "SWST_CLCKD_THREE", "SWST_CRUISE", "SWST_CLCKD_FOUR", "SWST_CLCKD_FIVE", "SWST_CLCKD_THREE_START", "SWST_CLCKD_FOUR_START", "SWST_CLCKD_REV_START", "SWST_CLCKD_TWO_OFF", "SWST_CLCKD_THREE_OFF", "SWST_CLCKD_FOUR_OFF", "SWST_CLCKD_FOUR_OFF_START", "SWST_CLCKD_FIVE_OFF", "SWST_ONE_START" };
 
 static THD_FUNCTION(trigger_thread, arg);
 static THD_WORKING_AREA(trigger_thread_wa, 2048);
@@ -195,7 +197,7 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
 				}
 				else
 				{
-					state = SWST_CLCKD_FOUR_START;
+					state = SWST_CLCKD_FOUR_OFF_START;
 					timeout = MS2ST(settings->trig_off_time);
 				}
             }
@@ -206,7 +208,42 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
                 send_to_speed (SPEED_OFF);
             }
             break;
-		case SWST_CLCKD_FOUR_START: // clicked three before, process four click start
+		case SWST_CLCKD_FOUR_OFF_START: // clicked three before, process four click start
+            if (event == SW_RELEASED)
+            {
+				state = SWST_CLCKD_FOUR_START;
+				timeout = MS2ST(settings->trig_off_time);
+            }
+			if (event == TIMER_EXPIRY)
+            {
+				if (settings->jump) == 1)
+				{
+					state = SWST_ONE_ON;
+					send_to_speed (JUMP_SPEED);
+					timeout = TIME_INFINITE;
+				}
+				else
+				{
+					state = SWST_ONE_ON;
+					timeout = TIME_INFINITE;
+					send_to_speed (SPEED_DOWN);
+				}
+            }
+            break;
+		case SWST_CLCKD_FOUR_START: // clicked three before, execute four click start
+            if (event == SW_PRESSED)
+            {
+				state = SWST_CLCKD_FIVE_OFF;
+				timeout = MS2ST(settings->trig_off_time);
+            }
+			if (event == TIMER_EXPIRY)
+            {
+                state = SWST_OFF;
+                timeout = TIME_INFINITE;
+                send_to_speed (SPEED_OFF);
+            }
+            break;
+		case SWST_CLCKD_FIVE_OFF: // clicked four before, process five click start
             if (event == SW_RELEASED)
             {
 				state = SWST_CLCKD_REV_START;
@@ -214,12 +251,10 @@ static THD_FUNCTION(trigger_thread, arg) // @suppress("No return")
             }
 			if (event == TIMER_EXPIRY)
             {
-                state = SWST_ONE_ON;
-				send_to_speed (JUMP_SPEED);
-				timeout = TIME_INFINITE;
+				state = SWST_ONE_ON;
+                timeout = TIME_INFINITE;   
             }
-            break;			
-			
+            break;	
 		case SWST_CLCKD_REV_START: // clicked four before, process five click reverse start
             if (event == SW_PRESSED)
             {
