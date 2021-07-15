@@ -351,6 +351,7 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
 				set_timeout(MS2ST(RAMPING_TIME_MS));
 				user_speed = settings->jump_speed -1;
 				adjust_speed (user_speed, MODE_RUN);
+				send_to_display (DISP_ON_TRIGGER);
 				send_to_display (DISP_SPEED_1 + user_speed);
                 break;
 			case REVERSE_SPEED_START: // Reverse speed
