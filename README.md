@@ -20,15 +20,16 @@ You are responsible for reviewing and testing anything in this repo before using
 # Added Features
 * Increased ERPM speed limit to 6000.
 * Added an additional speed (Speed 9).
-  * This can be set in terminal with $S9 and $L9. Default is speed9 5500 and limit9 28.
+  * This can be set in terminal with $S9 and $L9. Default is speed9 5000 and limit9 23.
 * Increased Limit to 30 amp from 23 amp.
-* Increase Motor current max to 49 amp from 40 amp.
 * Changed defaults (Use Safety 0, Disp Rot 0).
 * Added feature where three clicks will go to jump speed.
-  * This can be set in terminal with $J to control new jump speed setting. The default is 6.
+  * This can be set in terminal with $J to enable the feature and $K to set the speed. The default is disabled and speed 6.
 * Added feature where four clicks enables cruise control.
-  * Clicking once (holding or releasing) will cancel cruise. Any additional clicks are processed after disabling cruise control. For example: with cruise on, clicking twice and holding the second one results in cruise turning off and shifting down.
+  * Clicking once (holding or releasing) will cancel cruise. Any additional clicks are processed after disabling cruise control. For example: with cruise on, clicking twice and holding the second one results in cruise turning off and shifting down. This can be enabled with $C.
 * Added a low speed migrate option that is defaulted to off. If turned on, it will not migrate your speed if your current speed is < default speed. Controlled with $e.
+* Added reverse feature.
+  * Reverse mode is enabeld with 5 clicks. It will stop the motor and reverse the direction of spin. This can be enabled with $E. The display will show R on the screen until you start it again (double click). It will also show R and then the speed you are in. The speeds are the same, except they are cut in half. When you click the trigger 5 times again, it will display an F until the motor is turned on again.
 
 # Terminal commands and Defaults
 ```
@@ -59,8 +60,11 @@ $n disp_on_ms 3500
 $i batt_imbalance 2.00
 $x b2Rratio 14.00
 $l logging 00
-$J jump_speed 6
+$C cruise 0
+$J jump 0
+$K jump_speed 6
 $e low_migrate 0
+$E reverse 0
 $S1 speeds1 1525
 $S2 speeds2 2300
 $S3 speeds3 3100
@@ -69,7 +73,7 @@ $S5 speeds5 3900
 $S6 speeds6 4150
 $S7 speeds7 4450
 $S8 speeds8 4850
-$S9 speeds9 5500
+$S9 speeds9 5000
 $L1 limits1 1.00
 $L2 limits2 2.20
 $L3 limits3 3.80
@@ -78,7 +82,7 @@ $L5 limits5 9.60
 $L6 limits6 12.80
 $L7 limits7 17.00
 $L8 limits8 22.80
-$L9 limits9 29.00
+$L9 limits9 23.00
 $B1 levels1 34.00
 $B2 levels2 36.00
 $B3 levels3 38.00
