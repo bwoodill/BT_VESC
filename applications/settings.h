@@ -59,9 +59,11 @@ X (uint16_t, disp_on_ms,    $n, %i,    DISP_ON_TRIGGER_SPEED_MS) \
 X (float,    batt_imbalance,$i, %0.2f, BATTERY_MAX_IMBALANCE) \
 X (float,    b2Rratio,      $x, %0.2f, BATTERY2_SENSE_RATIO) \
 X (uint8_t,  logging,       $l, %02X,  LOGGING_OFF) \
-X (uint8_t,  jump_speed,    $J, %i,    JUMP_SPEED) \
-X (uint32_t, low_reset,     $LR, %i,   LOW_MIGRATE_RESET_MILLISECONDS) \
-X (uint8_t,  low_migrate,   $LM, %i,   LOW_MIGRATE) \
+X (uint8_t,  cruise,	    $C, %i,    CRUISE) \
+X (uint8_t,  jump,		    $J, %i,    JUMP) \
+X (uint8_t,  jump_speed,    $K, %i,    JUMP_SPEED) \
+X (uint8_t,  low_migrate,   $e, %i,    LOW_MIGRATE) \
+X (uint8_t,  reverse,  		$E, %i,    REVERSE) \
 
 typedef struct
 {

@@ -151,6 +151,9 @@ void display_battery_graph (bool initial)
 
 void display_speed (MESSAGE speed)
 {
+	mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
+	if ((conf->m_invert_direction) == 1)
+	{
     int new_speed = speed - DISP_SPEED_1 + 1;
     if(new_speed > 9 || new_speed < 1)
         return;
@@ -159,11 +162,64 @@ void display_speed (MESSAGE speed)
     GFX_setTextColor (LED_ON);
     LED_clear ();
     GFX_setCursor (1, 0);
-    char text[2] =
-        { '0' + new_speed, '\0' };
+	char text[2] =
+        {'R'};
     GFX_print_str (text);
     LED_writeDisplay ();
+	chThdSleepMilliseconds(500);
+	LED_clear ();
+    GFX_setCursor (1, 0);
+	char text2[2] =
+        { '0' + new_speed, '\0' };
+    GFX_print_str (text2);
+    LED_writeDisplay ();
     DISP_LOG(("Write '%s'", text));
+	}
+	else
+	{
+		int new_speed = speed - DISP_SPEED_1 + 1;
+		if(new_speed > 9 || new_speed < 1)
+			return;
+		GFX_setRotation (settings->disp_rotation);
+		GFX_setTextSize (1);
+		GFX_setTextColor (LED_ON);
+		LED_clear ();
+		GFX_setCursor (1, 0);
+		char text[2] =
+			{ '0' + new_speed, '\0' };
+		GFX_print_str (text);
+		LED_writeDisplay ();
+		DISP_LOG(("Write '%s'", text));
+	}
+}
+
+void display_reverse (void)
+{
+	mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
+	if ((conf->m_invert_direction) == 0)
+	{
+		GFX_setRotation (settings->disp_rotation);
+		GFX_setTextSize (1);
+		GFX_setTextColor (LED_ON);
+		LED_clear ();
+		GFX_setCursor (1, 0);
+		char text[2] =
+			{'R'};
+		GFX_print_str (text);
+		LED_writeDisplay ();
+	}
+	else
+	{
+		GFX_setRotation (settings->disp_rotation);
+		GFX_setTextSize (1);
+		GFX_setTextColor (LED_ON);
+		LED_clear ();
+		GFX_setCursor (1, 0);
+		char text[2] =
+			{'F'};
+		GFX_print_str (text);
+		LED_writeDisplay ();
+	}
 }
 
 #define DISP_RATE 2

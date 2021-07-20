@@ -130,7 +130,7 @@ void sikorski_set_defaults (sikorski_data *destination)
     destination->speeds[5] = SPEEDS6;
     destination->speeds[6] = SPEEDS7;
     destination->speeds[7] = SPEEDS8;
-    destination->speeds[8] = SPEEDS9;
+    destination->speeds[8] = SPEEDS9;	// New
 
     destination->limits[0] = LIMITS1;
     destination->limits[1] = LIMITS2;
@@ -140,7 +140,7 @@ void sikorski_set_defaults (sikorski_data *destination)
     destination->limits[5] = LIMITS6;
     destination->limits[6] = LIMITS7;
     destination->limits[7] = LIMITS8;
-    destination->limits[8] = LIMITS9;
+    destination->limits[8] = LIMITS9;	//New
 
     destination->battlevels[0] = DISP_BATT_VOLT1;
     destination->battlevels[1] = DISP_BATT_VOLT2;
@@ -151,7 +151,7 @@ void print_all (const char *data)
 {
     (void) data;
 
-    commands_printf ("$$ DIVEX Settings:\n  ----------");
+    commands_printf ("$$ BT_VESC Settings:\n  ----------");
     commands_printf ("$# (reset all)");
 
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
@@ -214,7 +214,7 @@ bool speed_default (const char *data)
     return true;
 }
 
-bool max_speed (const char *data)
+bool max_speed (const char *data) // Increased limit
 {
     int i;
     int num = sscanf (data, "%i", &i);
@@ -595,7 +595,45 @@ bool logging(const char *data)
     return true;
 }
 
-bool jump_speed(const char *data)
+
+bool cruise(const char *data) // Cruise
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 0 || i > 1)
+    {
+        commands_printf ("out of range. (0-1)\n");
+        return false;
+    }
+    settings->cruise = i;
+    return true;
+}
+
+
+bool jump(const char *data) // Jump
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 0 || i > 1)
+    {
+        commands_printf ("out of range. (0-1)\n");
+        return false;
+    }
+    settings->jump = i;
+    return true;
+}
+
+bool jump_speed(const char *data) // Jump Speed
 {
     int i;
     int num = sscanf (data, "%i", &i);
@@ -613,7 +651,7 @@ bool jump_speed(const char *data)
     return true;
 }
 
-bool low_migrate(const char *data)
+bool low_migrate(const char *data) // Low speed migrate
 {
     int i;
     int num = sscanf (data, "%i", &i);
@@ -631,7 +669,7 @@ bool low_migrate(const char *data)
     return true;
 }
 
-bool low_reset (const char *data)
+bool reverse (const char *data) // Reverse mode
 {
     int i;
     int num = sscanf (data, "%i", &i);
@@ -640,16 +678,16 @@ bool low_reset (const char *data)
         commands_printf ("invalid input.\n");
         return false;
     }
-    if (i < 500 || i > 1000000)
+    if (i < 0 || i > 1)
     {
-        commands_printf ("out of range. (500-1000000)\n");
+        commands_printf ("out of range. (0-1)\n");
         return false;
     }
-    settings->migrate_rate = i;
+    settings->reverse = i;
     return true;
 }
 
-bool set_speeds (int index, const char *data)
+bool set_speeds (int index, const char *data) // Increased limit from 5000 to 6000
 {
     int i;
     int num = sscanf (data, "%i", &i);
@@ -667,7 +705,7 @@ bool set_speeds (int index, const char *data)
     return true;
 }
 
-bool set_limits (int index, const char *data)
+bool set_limits (int index, const char *data) // Increased limit from 23 to 29
 {
     float x;
     int num = sscanf (data, "%f", &x);
@@ -676,9 +714,9 @@ bool set_limits (int index, const char *data)
         commands_printf ("invalid input.\n");
         return false;
     }
-    if (x < 0.5 || x > 30)
+    if (x < 0.5 || x > 29)
     {
-        commands_printf ("out of range. (0.5-30)\n");
+        commands_printf ("out of range. (0.5-29)\n");
         return false;
     }
     settings->limits[index] = x;

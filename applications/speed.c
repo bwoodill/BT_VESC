@@ -116,10 +116,14 @@ static void decrease (uint8_t *speed)
 
 static bool migrate (uint8_t *speed)		// Programmed speed migrates toward the default speed. Return true if it got there.
 {
-    if (*speed > DEFAULT_SPEED)
+	mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
+	if (*speed > DEFAULT_SPEED)
         (*speed)--;
     else if (*speed < DEFAULT_SPEED)
-        (*speed)++;
+        if(settings->low_migrate == 1 || (conf->m_invert_direction) == 1)  // Enable low migrate
+			return true;
+		else
+			(*speed)++;
     if (*speed == DEFAULT_SPEED)
         return true;
     return false;
@@ -150,6 +154,13 @@ static void set_max_current (float max_current)
     conf->l_in_current_max = max_current;
     conf->lo_in_current_max = max_current;
 }
+
+//This enables reverse
+//static void set_reverse (bool reverse)
+//{
+//    mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
+//    conf->m_invert_direction = reverse;
+//}
 
 // this limits the motor attempting to 'catch up' with it's programmed position when
 // it gets blocked (especially in safety mode), otherwise it lurches up attempting to recover
@@ -221,6 +232,8 @@ static float adjust_speed (uint8_t user_setting, RUN_MODES mode)
 {
     static float present_speed = 0.0;      // speed that motor is set to.
 
+	mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
+				
     if (mode == MODE_OFF)
     {
         present_speed = 0.0;
@@ -234,7 +247,13 @@ static float adjust_speed (uint8_t user_setting, RUN_MODES mode)
         present_speed = settings->guard_erpm;
         present_speed = limit_speed_by_battery(present_speed);
         set_max_ERPM(settings->guard_max_erpm);
-        mc_interface_set_pid_speed (present_speed);
+		
+		if ((conf->m_invert_direction) == 1) //reverse have speed
+		{
+			mc_interface_set_pid_speed ((present_speed / 2));
+		}
+		else
+			mc_interface_set_pid_speed (present_speed);
         return present_speed;
     }
     else // mode == MODE_RUN
@@ -246,7 +265,12 @@ static float adjust_speed (uint8_t user_setting, RUN_MODES mode)
         // ramp from the present speed toward the desired speed from user setting
         present_speed = ramping (present_speed, get_limited_speed(user_setting));
 
-        mc_interface_set_pid_speed (present_speed);
+        if ((conf->m_invert_direction) == 1) //reverse half speed
+		{
+			mc_interface_set_pid_speed ((present_speed / 2));
+		}
+		else
+			mc_interface_set_pid_speed (present_speed);
     }
 
     #if(SPEED_LOG == 1)
@@ -322,6 +346,24 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                     send_to_display (DISP_SPEED_1 + user_speed);
                 }
                 break;
+			case JUMP_SPEED_START: //new jump speed
+				state = MOTOR_ON;
+				set_timeout(MS2ST(RAMPING_TIME_MS));
+				user_speed = settings->jump_speed -1;
+				adjust_speed (user_speed, MODE_RUN);
+				send_to_display (DISP_ON_TRIGGER);
+				send_to_display (DISP_SPEED_1 + user_speed);
+                break;
+			case REVERSE_SPEED_START: // Reverse speed
+				state = MOTOR_OFF;
+				display_reverse();
+				user_speed = 0;
+                adjust_speed (user_speed, MODE_OFF);
+				set_timeout(MS2ST(settings->migrate_rate));
+				//settings->low_migrate = 1;
+				mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
+				conf->m_invert_direction = !(conf->m_invert_direction);
+                break;
             case CHECK_BATTERY:
                 break;
             case TIMER_EXPIRY:
@@ -357,6 +399,16 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
                 adjust_speed (user_speed, MODE_RUN);
                 send_to_display (DISP_SPEED_1 + user_speed);
                 set_timeout(MS2ST(RAMPING_TIME_MS));
+                break;
+			case REVERSE_SPEED: // Reverse speed
+				state = MOTOR_OFF;
+				display_reverse();
+				user_speed = 0;
+                adjust_speed (user_speed, MODE_OFF);
+				set_timeout(MS2ST(settings->migrate_rate));
+				//settings->low_migrate = 1;
+				mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
+				conf->m_invert_direction = !(conf->m_invert_direction);
                 break;
             case CHECK_BATTERY:
                 adjust_speed (user_speed, MODE_RUN);
