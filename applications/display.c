@@ -16,6 +16,8 @@
 
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ 
+ Additional Copyright 2021 Benjamin Woodill bwoodill@gmail.com
  */
 
 // this supports HT16K33 LED display module

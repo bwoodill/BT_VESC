@@ -18,6 +18,8 @@
 
  You should have received a copy of the GNU General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ 
+ Additional Copyright 2021 Benjamin Woodill bwoodill@gmail.com
  */
 
 //
@@ -360,7 +362,6 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
 				user_speed = 0;
                 adjust_speed (user_speed, MODE_OFF);
 				set_timeout(MS2ST(settings->migrate_rate));
-				//settings->low_migrate = 1;
 				mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
 				conf->m_invert_direction = !(conf->m_invert_direction);
                 break;
@@ -406,7 +407,6 @@ static THD_FUNCTION(speed_thread, arg) // @suppress("No return")
 				user_speed = 0;
                 adjust_speed (user_speed, MODE_OFF);
 				set_timeout(MS2ST(settings->migrate_rate));
-				//settings->low_migrate = 1;
 				mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
 				conf->m_invert_direction = !(conf->m_invert_direction);
                 break;
