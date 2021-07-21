@@ -120,7 +120,7 @@ Create the firmware
 make
 ```
 
-Use the [Vesc Tool](https://vesc-project.com/vesc_tool) (included for ubuntu, vesc_tool_1.16) to update the firmware. The firmware is in the build/ directory - BLDC_4_ChibiOS.bin
+Use the [Vesc Tool](https://vesc-project.com/vesc_tool) to update the firmware. The firmware is in the build/ directory - BLDC_4_BT_VESC.bin
 
 ## License
 
