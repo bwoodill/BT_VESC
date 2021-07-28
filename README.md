@@ -31,7 +31,7 @@ You are responsible for reviewing and testing anything in this repo before using
   * Clicking once (holding or releasing) will cancel cruise. Any additional clicks are processed after disabling cruise control. For example: with cruise on, clicking twice and holding the second one results in cruise turning off and shifting down. This can be enabled with $C.
 * Added a low speed migrate option that is defaulted to off. If turned on, it will not migrate your speed if your current speed is < default speed. Controlled with $e.
 * Added reverse feature.
-  * Reverse mode is enabeld with 5 clicks. It will stop the motor and reverse the direction of spin. This can be enabled with $E. The display will show R on the screen until you start it again (double click). It will also show R and then the speed you are in. The speeds are the same, except they are cut in half. When you click the trigger 5 times again, it will display an F until the motor is turned on again.
+  * Reverse mode is enabeld with 5 clicks. It will stop the motor and reverse the direction of spin. This can be enabled with $E. The display will show R on the screen until you start it again (double click). It will also show R and then the speed you are in. The speeds and other fucntions are the same, except they are cut in half. When you click the trigger 5 times again, it will display an F until the motor is turned on again. While in reverse, the speed will not migrate up to your default speed (ex. if in speed1, it will restart in speed1 and not migrate to speed3). When entering reverse or going back into forward, it will set your speed to 1.
 
 # Terminal Commands and Defaults
 ```
