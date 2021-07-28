@@ -33,7 +33,7 @@ You are responsible for reviewing and testing anything in this repo before using
 * Added reverse feature.
   * Reverse mode is enabeld with 5 clicks. It will stop the motor and reverse the direction of spin. This can be enabled with $E. The display will show R on the screen until you start it again (double click). It will also show R and then the speed you are in. The speeds are the same, except they are cut in half. When you click the trigger 5 times again, it will display an F until the motor is turned on again.
 
-# Terminal commands and Defaults
+# Terminal Commands and Defaults
 ```
 $$ BT_VESC Settings
 $# (reset all)
@@ -117,7 +117,7 @@ cd BT_VESC
 make
 ```
 
-Create the firmware 
+Create the Firmware 
 ```bash
 make
 ```
