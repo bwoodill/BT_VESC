@@ -6,6 +6,8 @@ An open source motor controller firmware for the Blacktip DPV with additional ad
 
 Please use the issue tracker here for issues, suggestions, etc. There is also a discussion on scubaboard here https://www.scubaboard.com/community/threads/blacktip-firmware-modifications.609780/
 
+Releases can be found here https://github.com/bwoodill/BT_VESC/releases
+
 This is BASED ON the source code for the VESC DC/BLDC/FOC controller and source from Dive Xtras. Read more at  
 [https://vesc-project.com/](https://vesc-project.com/) and https://github.com/claroworks-product-development/Sikorski
 
