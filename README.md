@@ -122,7 +122,7 @@ Create the Firmware
 make
 ```
 
-Use the [Vesc Tool](https://vesc-project.com/vesc_tool) to update the firmware. The firmware is in the build/ directory - BLDC_4_BT_VESC.bin
+Use the [Vesc Tool](https://vesc-project.com/vesc_tool) to update the firmware. The firmware is in the build directory - BLDC_4_BT_VESC.bin
 
 ## License
 
