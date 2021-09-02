@@ -13,6 +13,8 @@ This is BASED ON the source code for the VESC DC/BLDC/FOC controller and source 
 
 # DISCLAIMER
 
+This firmware will allow you to increase speed and current to a level that can damage the motor. Please be very careful if increasing the limits.
+
 Please note: everything in this repo is released for use "AS IS" without any warranties of any kind, including, but not limited to their installation, use, or performance. We disclaim any and all warranties, either express or implied, including but not limited to any warranty of noninfringement, merchantability, and/ or fitness for a particular purpose. 
 
 Any use of this repo is at your own risk. There is no guarantee that anything has been through testing. We are not responsible for any damage, data loss, death, injury, or property damage incurred with its use.
@@ -22,7 +24,7 @@ You are responsible for reviewing and testing anything in this repo before using
 # Added Features
 * Increased ERPM speed limit to 6000.
 * Added an additional speed (Speed 9).
-  * This can be set in terminal with $S9 and $L9. Default is speed9 5000 and limit9 23.
+  * This can be set in terminal with $S9 and $L9. Default is speed9 5000 and limit9 23. Be careful if increasing past default. High values can cause permanent damage to the motor.
 * Increased Limit to 30 amp from 23 amp.
 * Changed defaults (Use Safety 0, Disp Rot 0).
 * Added feature where three clicks will go to jump speed.
@@ -31,7 +33,7 @@ You are responsible for reviewing and testing anything in this repo before using
   * Clicking once (holding or releasing) will cancel cruise. Any additional clicks are processed after disabling cruise control. For example: with cruise on, clicking twice and holding the second one results in cruise turning off and shifting down. This can be enabled with $C.
 * Added a low speed migrate option that is defaulted to off. If turned on, it will not migrate your speed if your current speed is < default speed. Controlled with $e.
 * Added reverse feature.
-  * Reverse mode is enabeld with 5 clicks. It will stop the motor and reverse the direction of spin. This can be enabled with $E. The display will show R on the screen until you start it again (double click). It will also show R and then the speed you are in. The speeds and other fucntions are the same, except they are cut in half. When you click the trigger 5 times again, it will display an F until the motor is turned on again. While in reverse, the speed will not migrate up to your default speed (ex. if in speed1, it will restart in speed1 and not migrate to speed3). When entering reverse or going back into forward, it will set your speed to 1.
+  * Reverse mode is enabled with 5 clicks. It will stop the motor and reverse the direction of spin. This can be enabled with $E. The display will show R on the screen until you start it again (double click). It will also show R and then the speed you are in. The speeds and other functions are the same, except they are cut in half. When you click the trigger 5 times again, it will display an F until the motor is turned on again. While in reverse, the speed will not migrate up to your default speed (ex. if in speed1, it will restart in speed1 and not migrate to speed3). When entering reverse or going back into forward, it will set your speed to 1.
 
 # Terminal Commands and Defaults
 ```
