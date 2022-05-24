@@ -2,6 +2,8 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
+**Warning** If your scooter's serial number is HIGHER than "001-2700", this firmware is not compatible.
+
 An open source motor controller firmware for the Blacktip DPV with additional added features.
 
 Please use the issue tracker here for issues, suggestions, etc. There is also a discussion on scubaboard here https://www.scubaboard.com/community/threads/blacktip-firmware-modifications.609780/
