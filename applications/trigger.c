@@ -18,6 +18,8 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	
+	Additional Copyright 2021 Benjamin Woodill bwoodill@gmail.com
 */
 
 // This file defines a thread that takes switch events and performs timing and
@@ -66,8 +68,8 @@ typedef enum _sw_state
 	SWST_CLCKD_TWO_OFF,	//released after two clicks, execute second click
 	SWST_CLCKD_THREE_OFF, // released after three clicks, execute three click
 	SWST_CLCKD_FOUR_OFF, //released after four clicks, execute four click
-	SWST_CLCKD_FOUR_OFF_START, //released after four clicks, execute four click
-	SWST_CLCKD_FIVE_OFF, //released after four clicks, execute four click
+	SWST_CLCKD_FOUR_OFF_START, //released after four clicks, execute four click start
+	SWST_CLCKD_FIVE_OFF, //clicked four before, process five click start
     SWST_EOL
 } SW_STATE;
 
