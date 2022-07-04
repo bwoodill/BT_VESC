@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2021 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -47,6 +47,9 @@
 #endif
 #include "minilzo.h"
 #include "mempools.h"
+#include "bms.h"
+#include "qmlui.h"
+#include "crc.h"
 
 #include <math.h>
 #include <string.h>
@@ -55,7 +58,11 @@
 
 // Threads
 static THD_FUNCTION(blocking_thread, arg);
+#ifdef USE_LISPBM
+static THD_WORKING_AREA(blocking_thread_wa, 6000);
+#else
 static THD_WORKING_AREA(blocking_thread_wa, 2048);
+#endif
 static thread_t *blocking_tp;
 
 // Private variables
@@ -67,17 +74,26 @@ static volatile int blocking_thread_motor = 1;
 static void(* volatile send_func)(unsigned char *data, unsigned int len) = 0;
 static void(* volatile send_func_blocking)(unsigned char *data, unsigned int len) = 0;
 static void(* volatile send_func_nrf)(unsigned char *data, unsigned int len) = 0;
+static void(* volatile send_func_can_fwd)(unsigned char *data, unsigned int len) = 0;
 static void(* volatile appdata_func)(unsigned char *data, unsigned int len) = 0;
+static void(* volatile hwdata_func)(unsigned char *data, unsigned int len) = 0;
 static disp_pos_mode display_position_mode;
 static mutex_t print_mutex;
 static mutex_t send_buffer_mutex;
 static mutex_t terminal_mutex;
+static volatile int fw_version_sent_cnt = 0;
+static bool isInitialized = false;
 
 void commands_init(void) {
 	chMtxObjectInit(&print_mutex);
 	chMtxObjectInit(&send_buffer_mutex);
 	chMtxObjectInit(&terminal_mutex);
 	chThdCreateStatic(blocking_thread_wa, sizeof(blocking_thread_wa), NORMALPRIO, blocking_thread, NULL);
+	isInitialized = true;
+}
+
+bool commands_is_initialized(void) {
+	return isInitialized;
 }
 
 /**
@@ -92,6 +108,21 @@ void commands_init(void) {
 void commands_send_packet(unsigned char *data, unsigned int len) {
 	if (send_func) {
 		send_func(data, len);
+	}
+}
+
+/**
+ * Send a packet using the last can fwd function.
+ *
+ * @param data
+ * The packet data.
+ *
+ * @param len
+ * The data length.
+ */
+void commands_send_packet_can_last(unsigned char *data, unsigned int len) {
+	if (send_func_can_fwd) {
+		send_func_can_fwd(data, len);
 	}
 }
 
@@ -167,10 +198,14 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		reply_func = commands_send_packet;
 	}
 
+	if (!send_func_can_fwd) {
+		send_func_can_fwd = reply_func;
+	}
+
 	switch (packet_id) {
 	case COMM_FW_VERSION: {
 		int32_t ind = 0;
-		uint8_t send_buffer[50];
+		uint8_t send_buffer[60];
 		send_buffer[ind++] = COMM_FW_VERSION;
 		send_buffer[ind++] = FW_VERSION_MAJOR;
 		send_buffer[ind++] = FW_VERSION_MINOR;
@@ -189,6 +224,42 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 		send_buffer[ind++] = app_get_configuration()->pairing_done;
 		send_buffer[ind++] = FW_TEST_VERSION_NUMBER;
+
+		send_buffer[ind++] = HW_TYPE_VESC;
+
+		send_buffer[ind++] = 0; // No custom config
+
+#ifdef HW_HAS_PHASE_FILTERS
+		send_buffer[ind++] = 1;
+#else
+		send_buffer[ind++] = 0;
+#endif
+
+#ifdef QMLUI_SOURCE_HW
+#ifdef QMLUI_HW_FULLSCREEN
+		send_buffer[ind++] = 2;
+#else
+		send_buffer[ind++] = 1;
+#endif
+#else
+		send_buffer[ind++] = 0;
+#endif
+
+#ifdef QMLUI_SOURCE_APP
+#ifdef QMLUI_APP_FULLSCREEN
+		send_buffer[ind++] = 2;
+#else
+		send_buffer[ind++] = 1;
+#endif
+#else
+		if (flash_helper_qmlui_data()) {
+			send_buffer[ind++] = flash_helper_qmlui_flags();
+		} else {
+			send_buffer[ind++] = 0;
+		}
+#endif
+
+		fw_version_sent_cnt++;
 
 		reply_func(send_buffer, ind);
 	} break;
@@ -318,7 +389,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			buffer_append_float32(send_buffer, mc_interface_get_rpm(), 1e0, &ind);
 		}
 		if (mask & ((uint32_t)1 << 8)) {
-			buffer_append_float16(send_buffer, GET_INPUT_VOLTAGE(), 1e1, &ind);
+			buffer_append_float16(send_buffer, mc_interface_get_input_voltage_filtered(), 1e1, &ind);
 		}
 		if (mask & ((uint32_t)1 << 9)) {
 			buffer_append_float32(send_buffer, mc_interface_get_amp_hours(false), 1e4, &ind);
@@ -345,7 +416,13 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			buffer_append_float32(send_buffer, mc_interface_get_pid_pos_now(), 1e6, &ind);
 		}
 		if (mask & ((uint32_t)1 << 17)) {
-			send_buffer[ind++] = app_get_configuration()->controller_id;
+			uint8_t current_controller_id = app_get_configuration()->controller_id;
+#ifdef HW_HAS_DUAL_MOTORS
+			if (mc_interface_get_motor_thread() == 2) {
+				current_controller_id = utils_second_motor_id();
+			}
+#endif
+			send_buffer[ind++] = current_controller_id;
 		}
 		if (mask & ((uint32_t)1 << 18)) {
 			buffer_append_float16(send_buffer, NTC_TEMP_MOS1(), 1e1, &ind);
@@ -357,6 +434,12 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		}
 		if (mask & ((uint32_t)1 << 20)) {
 			buffer_append_float32(send_buffer, mc_interface_read_reset_avg_vq(), 1e3, &ind);
+		}
+		if (mask & ((uint32_t)1 << 21)) {
+			uint8_t status = 0;
+			status |= timeout_has_timeout();
+			status |= timeout_kill_sw_active() << 1;
+			send_buffer[ind++] = status;
 		}
 
 		reply_func(send_buffer, ind);
@@ -415,13 +498,12 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	} break;
 
 	case COMM_SET_SERVO_POS: {
-#if SERVO_OUT_ENABLE
 		int32_t ind = 0;
 		servo_simple_set_output(buffer_get_float16(data, 1000.0, &ind));
-#endif
 	} break;
 
 	case COMM_SET_MCCONF: {
+#ifndef	HW_MCCONF_READ_ONLY
 		mc_configuration *mcconf = mempools_alloc_mcconf();
 		*mcconf = *mc_interface_get_configuration();
 
@@ -457,6 +539,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		}
 
 		mempools_free_mcconf(mcconf);
+#endif
 	} break;
 
 	case COMM_GET_MCCONF:
@@ -467,6 +550,18 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			*mcconf = *mc_interface_get_configuration();
 		} else {
 			confgenerator_set_defaults_mcconf(mcconf, true);
+			volatile const mc_configuration *mcconf_now = mc_interface_get_configuration();
+
+			// Keep the old offsets
+			mcconf->foc_offsets_current[0] = mcconf_now->foc_offsets_current[0];
+			mcconf->foc_offsets_current[1] = mcconf_now->foc_offsets_current[1];
+			mcconf->foc_offsets_current[2] = mcconf_now->foc_offsets_current[2];
+			mcconf->foc_offsets_voltage[0] = mcconf_now->foc_offsets_voltage[0];
+			mcconf->foc_offsets_voltage[1] = mcconf_now->foc_offsets_voltage[1];
+			mcconf->foc_offsets_voltage[2] = mcconf_now->foc_offsets_voltage[2];
+			mcconf->foc_offsets_voltage_undriven[0] = mcconf_now->foc_offsets_voltage_undriven[0];
+			mcconf->foc_offsets_voltage_undriven[1] = mcconf_now->foc_offsets_voltage_undriven[1];
+			mcconf->foc_offsets_voltage_undriven[2] = mcconf_now->foc_offsets_voltage_undriven[2];
 		}
 
 		commands_send_mcconf(packet_id, mcconf);
@@ -474,6 +569,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	} break;
 
 	case COMM_SET_APPCONF: {
+#ifndef	HW_APPCONF_READ_ONLY
 		app_configuration *appconf = mempools_alloc_appconf();
 		*appconf = *app_get_configuration();
 #ifdef _STORE_CONFIGS_
@@ -487,7 +583,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 			conf_general_store_app_configuration(appconf);
 			app_set_configuration(appconf);
-			timeout_configure(appconf->timeout_msec, appconf->timeout_brake_current);
+			timeout_configure(appconf->timeout_msec, appconf->timeout_brake_current, appconf->kill_sw_mode);
 			chThdSleepMilliseconds(200);
 
 			int32_t ind = 0;
@@ -500,6 +596,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 #else
 #endif
 		mempools_free_appconf(appconf);
+#endif
 	} break;
 
 	case COMM_GET_APPCONF:
@@ -532,10 +629,17 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		mode = data[ind++];
 		sample_len = buffer_get_uint16(data, &ind);
 		decimation = data[ind++];
-		mc_interface_sample_print_data(mode, sample_len, decimation);
+
+		bool raw = false;
+		if (len > (uint32_t)ind) {
+			raw = data[ind++];
+		}
+
+		mc_interface_sample_print_data(mode, sample_len, decimation, raw);
 	} break;
 
 	case COMM_REBOOT:
+		conf_general_store_backup_data();
 		// Lock the system and enter an infinite loop. The watchdog will reboot.
 		__disable_irq();
 		for(;;){};
@@ -583,15 +687,18 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_roll_angle() * 1000000.0), &ind);
 		buffer_append_uint32(send_buffer, app_balance_get_diff_time(), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_motor_current() * 1000000.0), &ind);
-		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_motor_position() * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_debug1() * 1000000.0), &ind);
 		buffer_append_uint16(send_buffer, app_balance_get_state(), &ind);
 		buffer_append_uint16(send_buffer, app_balance_get_switch_state(), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_adc1() * 1000000.0), &ind);
 		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_adc2() * 1000000.0), &ind);
+		buffer_append_int32(send_buffer, (int32_t)(app_balance_get_debug2() * 1000000.0), &ind);
 		reply_func(send_buffer, ind);
 	} break;
 
 	case COMM_FORWARD_CAN: {
+		send_func_can_fwd = reply_func;
+
 #ifdef HW_HAS_DUAL_MOTORS
 		if (data[0] == utils_second_motor_id()) {
 			mc_interface_select_motor_thread(2);
@@ -630,6 +737,12 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_CUSTOM_APP_DATA:
 		if (appdata_func) {
 			appdata_func(data, len);
+		}
+		break;
+
+	case COMM_CUSTOM_HW_DATA:
+		if (hwdata_func) {
+			hwdata_func(data, len);
 		}
 		break;
 
@@ -740,7 +853,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			buffer_append_float32(send_buffer, mc_interface_get_speed(), 1e3, &ind);
 		}
 		if (mask & ((uint32_t)1 << 7)) {
-			buffer_append_float16(send_buffer, GET_INPUT_VOLTAGE(), 1e1, &ind);
+			buffer_append_float16(send_buffer, mc_interface_get_input_voltage_filtered(), 1e1, &ind);
 		}
 		if (mask & ((uint32_t)1 << 8)) {
 			buffer_append_float16(send_buffer, battery_level, 1e3, &ind);
@@ -770,7 +883,13 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			send_buffer[ind++] = mc_interface_get_fault();
 		}
 		if (mask & ((uint32_t)1 << 17)) {
-			send_buffer[ind++] = app_get_configuration()->controller_id;
+			uint8_t current_controller_id = app_get_configuration()->controller_id;
+#ifdef HW_HAS_DUAL_MOTORS
+			if (mc_interface_get_motor_thread() == 2) {
+				current_controller_id = utils_second_motor_id();
+			}
+#endif
+			send_buffer[ind++] = current_controller_id;
 		}
 		if (mask & ((uint32_t)1 << 18)) {
 			send_buffer[ind++] = val.num_vescs;
@@ -778,9 +897,21 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		if (mask & ((uint32_t)1 << 19)) {
 			buffer_append_float32(send_buffer, wh_batt_left, 1e3, &ind);
 		}
+		if (mask & ((uint32_t)1 << 20)) {
+			buffer_append_uint32(send_buffer, mc_interface_get_odometer(), &ind);
+		}
+		if (mask & ((uint32_t)1 << 21)) {
+			buffer_append_uint32(send_buffer, chVTGetSystemTimeX() / (CH_CFG_ST_FREQUENCY / 1000), &ind);
+		}
 
 		reply_func(send_buffer, ind);
 		chMtxUnlock(&send_buffer_mutex);
+	    } break;
+
+	case COMM_SET_ODOMETER: {
+		int32_t ind = 0;
+		mc_interface_set_odometer(buffer_get_uint32(data, &ind));
+		timeout_reset();
 	} break;
 
 	case COMM_SET_MCCONF_TEMP:
@@ -830,7 +961,6 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		mcconf->l_max_duty = buffer_get_float32_auto(data, &ind);
 		mcconf->l_watt_min = buffer_get_float32_auto(data, &ind) / controller_num;
 		mcconf->l_watt_max = buffer_get_float32_auto(data, &ind) / controller_num;
-
 
 		// Write divided data back to the buffer, as the other controllers have no way to tell
 		// how many controllers are on the bus and thus need pre-divided data.
@@ -885,6 +1015,32 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		mempools_free_mcconf(mcconf);
 	} break;
 
+	case COMM_GET_MCCONF_TEMP: {
+		mc_configuration *mcconf = mempools_alloc_mcconf();
+		*mcconf = *mc_interface_get_configuration();
+		int32_t ind = 0;
+		uint8_t send_buffer[60];
+
+		send_buffer[ind++] = packet_id;
+		buffer_append_float32_auto(send_buffer, mcconf->l_current_min_scale, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf->l_current_max_scale, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf->l_min_erpm, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf->l_max_erpm, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf->l_min_duty, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf->l_max_duty, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf->l_watt_min, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf->l_watt_max, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf->l_in_current_min, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf->l_in_current_max, &ind);
+		// Setup config needed for speed calculation
+		send_buffer[ind++] = (uint8_t)mcconf->si_motor_poles;
+		buffer_append_float32_auto(send_buffer, mcconf->si_gear_ratio, &ind);
+		buffer_append_float32_auto(send_buffer, mcconf->si_wheel_diameter, &ind);
+
+		mempools_free_mcconf(mcconf);
+		reply_func(send_buffer, ind);
+	} break;
+
 	case COMM_EXT_NRF_PRESENT: {
 		if (!conf_general_permanent_nrf_found) {
 			nrf_driver_init_ext_nrf();
@@ -902,7 +1058,14 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	} break;
 
 	case COMM_EXT_NRF_ESB_RX_DATA: {
-		nrf_driver_process_packet(data, len);
+		if (len > 2) {
+			unsigned short crc = crc16((unsigned char*)data, len - 2);
+
+			if (crc	== ((unsigned short) data[len - 2] << 8 |
+					(unsigned short) data[len - 1])) {
+				nrf_driver_process_packet(data, len);
+			}
+		}
 	} break;
 
 	case COMM_APP_DISABLE_OUTPUT: {
@@ -994,6 +1157,16 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 			buffer_append_float32_auto(send_buffer, q[3], &ind);
 		}
 
+		if (mask & ((uint32_t)1 << 16)) {
+			uint8_t current_controller_id = app_get_configuration()->controller_id;
+#ifdef HW_HAS_DUAL_MOTORS
+			if (mc_interface_get_motor_thread() == 2) {
+				current_controller_id = utils_second_motor_id();
+			}
+#endif
+			send_buffer[ind++] = current_controller_id;
+		}
+
 		reply_func(send_buffer, ind);
 	} break;
 
@@ -1075,6 +1248,18 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 		reply_func(send_buffer, ind);
 	} break;
 
+	case COMM_GET_BATTERY_CUT: {
+		int32_t ind = 0;
+		uint8_t send_buffer[60];
+		volatile const mc_configuration *mcconf = mc_interface_get_configuration();
+
+		send_buffer[ind++] = packet_id;
+		buffer_append_float32(send_buffer, mcconf->l_battery_cut_start, 1e3, &ind);
+		buffer_append_float32(send_buffer, mcconf->l_battery_cut_end, 1e3, &ind);
+
+		reply_func(send_buffer, ind);
+	} break;
+
 	case COMM_SET_CAN_MODE: {
 		int32_t ind = 0;
 		bool store = data[ind++];
@@ -1095,6 +1280,260 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 
 		if (ack) {
 			ind = 0;
+			uint8_t send_buffer[50];
+			send_buffer[ind++] = packet_id;
+			reply_func(send_buffer, ind);
+		}
+	} break;
+
+	case COMM_BMS_GET_VALUES:
+	case COMM_BMS_SET_CHARGE_ALLOWED:
+	case COMM_BMS_SET_BALANCE_OVERRIDE:
+	case COMM_BMS_RESET_COUNTERS:
+	case COMM_BMS_FORCE_BALANCE:
+	case COMM_BMS_ZERO_CURRENT_OFFSET: {
+		bms_process_cmd(data - 1, len + 1, reply_func);
+		break;
+	}
+
+	// Power switch
+	case COMM_PSW_GET_STATUS: {
+		int32_t ind = 0;
+		bool by_id = data[ind++];
+		int id_ind = buffer_get_int16(data, &ind);
+
+		int psws_num = 0;
+		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+			psw_status *stat = comm_can_get_psw_status_index(i);
+			if (stat->id >= 0) {
+				psws_num++;
+			} else {
+				break;
+			}
+		}
+
+		psw_status *stat = 0;
+		if (by_id) {
+			stat = comm_can_get_psw_status_id(id_ind);
+		} else if (id_ind < psws_num) {
+			stat = comm_can_get_psw_status_index(id_ind);
+		}
+
+		if (stat) {
+			ind = 0;
+			uint8_t send_buffer[70];
+
+			send_buffer[ind++] = packet_id;
+			buffer_append_int16(send_buffer, stat->id, &ind);
+			buffer_append_int16(send_buffer, psws_num, &ind);
+			buffer_append_float32_auto(send_buffer, UTILS_AGE_S(stat->rx_time), &ind);
+			buffer_append_float32_auto(send_buffer, stat->v_in, &ind);
+			buffer_append_float32_auto(send_buffer, stat->v_out, &ind);
+			buffer_append_float32_auto(send_buffer, stat->temp, &ind);
+			send_buffer[ind++] = stat->is_out_on;
+			send_buffer[ind++] = stat->is_pch_on;
+			send_buffer[ind++] = stat->is_dsc_on;
+
+			reply_func(send_buffer, ind);
+		}
+	} break;
+
+	case COMM_PSW_SWITCH: {
+		int32_t ind = 0;
+		int id = buffer_get_int16(data, &ind);
+		bool is_on = data[ind++];
+		bool plot = data[ind++];
+		comm_can_psw_switch(id, is_on, plot);
+	} break;
+
+	case COMM_GET_QML_UI_HW: {
+#ifdef QMLUI_SOURCE_HW
+		int32_t ind = 0;
+
+		int32_t len_qml = buffer_get_int32(data, &ind);
+		int32_t ofs_qml = buffer_get_int32(data, &ind);
+
+		if ((len_qml + ofs_qml) > DATA_QML_HW_SIZE || len_qml > (PACKET_MAX_PL_LEN - 10)) {
+			break;
+		}
+
+		chMtxLock(&send_buffer_mutex);
+		ind = 0;
+		send_buffer_global[ind++] = packet_id;
+		buffer_append_int32(send_buffer_global, DATA_QML_HW_SIZE, &ind);
+		buffer_append_int32(send_buffer_global, ofs_qml, &ind);
+		memcpy(send_buffer_global + ind, data_qml_hw + ofs_qml, len_qml);
+		ind += len_qml;
+		reply_func(send_buffer_global, ind);
+
+		chMtxUnlock(&send_buffer_mutex);
+#endif
+	} break;
+
+	case COMM_GET_QML_UI_APP: {
+		int32_t ind = 0;
+
+		int32_t len_qml = buffer_get_int32(data, &ind);
+		int32_t ofs_qml = buffer_get_int32(data, &ind);
+
+		uint8_t *qmlui_data = flash_helper_qmlui_data();
+		int32_t qmlui_len = flash_helper_qmlui_size();
+
+#ifdef QMLUI_SOURCE_APP
+		qmlui_data = data_qml_app;
+		qmlui_len = DATA_QML_APP_SIZE;
+#endif
+
+		if (!qmlui_data) {
+			break;
+		}
+
+		if ((len_qml + ofs_qml) > qmlui_len || len_qml > (PACKET_MAX_PL_LEN - 10)) {
+			break;
+		}
+
+		chMtxLock(&send_buffer_mutex);
+		ind = 0;
+		send_buffer_global[ind++] = packet_id;
+		buffer_append_int32(send_buffer_global, qmlui_len, &ind);
+		buffer_append_int32(send_buffer_global, ofs_qml, &ind);
+		memcpy(send_buffer_global + ind, qmlui_data + ofs_qml, len_qml);
+		ind += len_qml;
+		reply_func(send_buffer_global, ind);
+
+		chMtxUnlock(&send_buffer_mutex);
+	} break;
+
+	case COMM_QMLUI_ERASE: {
+		int32_t ind = 0;
+
+		if (nrf_driver_ext_nrf_running()) {
+			nrf_driver_pause(6000);
+		}
+		uint16_t flash_res = flash_helper_erase_qmlui();
+
+		ind = 0;
+		uint8_t send_buffer[50];
+		send_buffer[ind++] = COMM_QMLUI_ERASE;
+		send_buffer[ind++] = flash_res == FLASH_COMPLETE ? 1 : 0;
+		reply_func(send_buffer, ind);
+	} break;
+
+	case COMM_QMLUI_WRITE: {
+		int32_t ind = 0;
+		uint32_t qmlui_offset = buffer_get_uint32(data, &ind);
+
+		if (nrf_driver_ext_nrf_running()) {
+			nrf_driver_pause(2000);
+		}
+		uint16_t flash_res = flash_helper_write_qmlui(qmlui_offset, data + ind, len - ind);
+
+		SHUTDOWN_RESET();
+
+		ind = 0;
+		uint8_t send_buffer[50];
+		send_buffer[ind++] = COMM_QMLUI_WRITE;
+		send_buffer[ind++] = flash_res == FLASH_COMPLETE ? 1 : 0;
+		buffer_append_uint32(send_buffer, qmlui_offset, &ind);
+		reply_func(send_buffer, ind);
+	} break;
+
+	case COMM_IO_BOARD_GET_ALL: {
+		int32_t ind = 0;
+		int id = buffer_get_int16(data, &ind);
+
+		io_board_adc_values *adc_1_4 = comm_can_get_io_board_adc_1_4_id(id);
+		io_board_adc_values *adc_5_8 = comm_can_get_io_board_adc_5_8_id(id);
+		io_board_digial_inputs *digital_in = comm_can_get_io_board_digital_in_id(id);
+
+		if (!adc_1_4 && !adc_5_8 && !digital_in) {
+			break;
+		}
+
+		uint8_t send_buffer[70];
+		ind = 0;
+		send_buffer[ind++] = packet_id;
+		buffer_append_int16(send_buffer, id, &ind);
+
+		if (adc_1_4) {
+			send_buffer[ind++] = 1;
+			buffer_append_float32_auto(send_buffer, UTILS_AGE_S(adc_1_4->rx_time), &ind);
+			buffer_append_float16(send_buffer, adc_1_4->adc_voltages[0], 1e2, &ind);
+			buffer_append_float16(send_buffer, adc_1_4->adc_voltages[1], 1e2, &ind);
+			buffer_append_float16(send_buffer, adc_1_4->adc_voltages[2], 1e2, &ind);
+			buffer_append_float16(send_buffer, adc_1_4->adc_voltages[3], 1e2, &ind);
+		}
+
+		if (adc_5_8) {
+			send_buffer[ind++] = 2;
+			buffer_append_float32_auto(send_buffer, UTILS_AGE_S(adc_1_4->rx_time), &ind);
+			buffer_append_float16(send_buffer, adc_5_8->adc_voltages[0], 1e2, &ind);
+			buffer_append_float16(send_buffer, adc_5_8->adc_voltages[1], 1e2, &ind);
+			buffer_append_float16(send_buffer, adc_5_8->adc_voltages[2], 1e2, &ind);
+			buffer_append_float16(send_buffer, adc_5_8->adc_voltages[3], 1e2, &ind);
+		}
+
+		if (digital_in) {
+			send_buffer[ind++] = 3;
+			buffer_append_float32_auto(send_buffer, UTILS_AGE_S(adc_1_4->rx_time), &ind);
+			buffer_append_uint32(send_buffer, (digital_in->inputs >> 32) & 0xFFFFFFFF, &ind);
+			buffer_append_uint32(send_buffer, (digital_in->inputs >> 0) & 0xFFFFFFFF, &ind);
+		}
+
+		reply_func(send_buffer, ind);
+	} break;
+
+	case COMM_IO_BOARD_SET_PWM: {
+		int32_t ind = 0;
+		int id = buffer_get_int16(data, &ind);
+		int channel = buffer_get_int16(data, &ind);
+		float duty = buffer_get_float32_auto(data, &ind);
+		comm_can_io_board_set_output_pwm(id, channel, duty);
+	} break;
+
+	case COMM_IO_BOARD_SET_DIGITAL: {
+		int32_t ind = 0;
+		int id = buffer_get_int16(data, &ind);
+		int channel = buffer_get_int16(data, &ind);
+		bool on = data[ind++];
+		comm_can_io_board_set_output_digital(id, channel, on);
+	} break;
+
+	case COMM_GET_STATS: {
+		int32_t ind = 0;
+		uint32_t mask = buffer_get_uint16(data, &ind);
+
+		ind = 0;
+		uint8_t send_buffer[60];
+		send_buffer[ind++] = packet_id;
+		buffer_append_uint32(send_buffer, mask, &ind);
+
+		if (mask & ((uint32_t)1 << 0)) { buffer_append_float32_auto(send_buffer, mc_interface_stat_speed_avg(), &ind); }
+		if (mask & ((uint32_t)1 << 1)) { buffer_append_float32_auto(send_buffer, mc_interface_stat_speed_max(), &ind); }
+		if (mask & ((uint32_t)1 << 2)) { buffer_append_float32_auto(send_buffer, mc_interface_stat_power_avg(), &ind); }
+		if (mask & ((uint32_t)1 << 3)) { buffer_append_float32_auto(send_buffer, mc_interface_stat_power_max(), &ind); }
+		if (mask & ((uint32_t)1 << 4)) { buffer_append_float32_auto(send_buffer, mc_interface_stat_current_avg(), &ind); }
+		if (mask & ((uint32_t)1 << 5)) { buffer_append_float32_auto(send_buffer, mc_interface_stat_current_max(), &ind); }
+		if (mask & ((uint32_t)1 << 6)) { buffer_append_float32_auto(send_buffer, mc_interface_stat_temp_mosfet_avg(), &ind); }
+		if (mask & ((uint32_t)1 << 7)) { buffer_append_float32_auto(send_buffer, mc_interface_stat_temp_mosfet_max(), &ind); }
+		if (mask & ((uint32_t)1 << 8)) { buffer_append_float32_auto(send_buffer, mc_interface_stat_temp_motor_avg(), &ind); }
+		if (mask & ((uint32_t)1 << 9)) { buffer_append_float32_auto(send_buffer, mc_interface_stat_temp_motor_max(), &ind); }
+		if (mask & ((uint32_t)1 << 10)) { buffer_append_float32_auto(send_buffer, mc_interface_stat_count_time(), &ind); }
+
+		reply_func(send_buffer, ind);
+	} break;
+
+	case COMM_RESET_STATS: {
+		bool ack = false;
+
+		if (len > 0) {
+			ack = data[0];
+		}
+
+		mc_interface_stat_reset();
+
+		if (ack) {
+			int32_t ind = 0;
 			uint8_t send_buffer[50];
 			send_buffer[ind++] = packet_id;
 			reply_func(send_buffer, ind);
@@ -1123,6 +1562,7 @@ void commands_process_packet(unsigned char *data, unsigned int len,
 	case COMM_BM_MAP_PINS_NRF5X:
 	case COMM_BM_MEM_READ:
 	case COMM_GET_IMU_CALIBRATION:
+	case COMM_BM_MEM_WRITE:
 		if (!is_blocking) {
 			memcpy(blocking_thread_cmd_buffer, data - 1, len + 1);
 			blocking_thread_cmd_len = len + 1;
@@ -1206,10 +1646,24 @@ void commands_set_app_data_handler(void(*func)(unsigned char *data, unsigned int
 	appdata_func = func;
 }
 
+void commands_set_hw_data_handler(void(*func)(unsigned char *data, unsigned int len)) {
+	hwdata_func = func;
+}
+
 void commands_send_app_data(unsigned char *data, unsigned int len) {
 	int32_t index = 0;
 	chMtxLock(&send_buffer_mutex);
 	send_buffer_global[index++] = COMM_CUSTOM_APP_DATA;
+	memcpy(send_buffer_global + index, data, len);
+	index += len;
+	commands_send_packet(send_buffer_global, index);
+	chMtxUnlock(&send_buffer_mutex);
+}
+
+void commands_send_hw_data(unsigned char *data, unsigned int len) {
+	int32_t index = 0;
+	chMtxLock(&send_buffer_mutex);
+	send_buffer_global[index++] = COMM_CUSTOM_HW_DATA;
 	memcpy(send_buffer_global + index, data, len);
 	index += len;
 	commands_send_packet(send_buffer_global, index);
@@ -1239,26 +1693,53 @@ void commands_send_appconf(COMM_PACKET_ID packet_id, app_configuration *appconf)
 	chMtxUnlock(&send_buffer_mutex);
 }
 
+inline static float hw_lim_upper(float l, float h) {(void)l; return h;}
+
 void commands_apply_mcconf_hw_limits(mc_configuration *mcconf) {
 	utils_truncate_number(&mcconf->l_current_max_scale, 0.0, 1.0);
 	utils_truncate_number(&mcconf->l_current_min_scale, 0.0, 1.0);
+
+	float ctrl_loop_freq = 0.0;
 
 	// This limit should always be active, as starving the threads never
 	// makes sense.
 #ifdef HW_LIM_FOC_CTRL_LOOP_FREQ
     if (mcconf->foc_sample_v0_v7 == true) {
     	//control loop executes twice per pwm cycle when sampling in v0 and v7
-		utils_truncate_number(&mcconf->foc_f_sw, HW_LIM_FOC_CTRL_LOOP_FREQ);
+		utils_truncate_number(&mcconf->foc_f_zv, HW_LIM_FOC_CTRL_LOOP_FREQ);
+		ctrl_loop_freq = mcconf->foc_f_zv;
     } else {
 #ifdef HW_HAS_DUAL_MOTORS
-    	utils_truncate_number(&mcconf->foc_f_sw, HW_LIM_FOC_CTRL_LOOP_FREQ);
+    	utils_truncate_number(&mcconf->foc_f_zv, HW_LIM_FOC_CTRL_LOOP_FREQ);
+    	ctrl_loop_freq = mcconf->foc_f_zv;
 #else
-		utils_truncate_number(&mcconf->foc_f_sw, HW_LIM_FOC_CTRL_LOOP_FREQ * 2.0);
+		utils_truncate_number(&mcconf->foc_f_zv, HW_LIM_FOC_CTRL_LOOP_FREQ * 2.0);
+		ctrl_loop_freq = mcconf->foc_f_zv / 2.0;
 #endif
     }
 #endif
 
+    if (ctrl_loop_freq >= (hw_lim_upper(HW_LIM_FOC_CTRL_LOOP_FREQ) * 0.9)) {
+    	utils_truncate_number_int(&mcconf->m_hall_extra_samples, 0, 2);
+    } else if (ctrl_loop_freq >= (hw_lim_upper(HW_LIM_FOC_CTRL_LOOP_FREQ) * 0.7)) {
+    	utils_truncate_number_int(&mcconf->m_hall_extra_samples, 0, 4);
+    } else {
+    	utils_truncate_number_int(&mcconf->m_hall_extra_samples, 0, 10);
+    }
+
 #ifndef DISABLE_HW_LIMITS
+
+    // TODO: Maybe truncate values that get close to numerical instabilities when set
+    // close to each other, such as
+    //
+    // conf->l_temp_motor_start, conf->l_temp_motor_end
+    // and
+    // conf->l_temp_fet_start, conf->l_temp_fet_end
+    //
+    // A division by 0 is avoided in the code, but getting close can still make things
+    // oscillate. At the moment we leave the responsibility of setting sane values
+    // to the user.
+
 #ifdef HW_LIM_CURRENT
 	utils_truncate_number(&mcconf->l_current_max, HW_LIM_CURRENT);
 	utils_truncate_number(&mcconf->l_current_min, HW_LIM_CURRENT);
@@ -1336,6 +1817,10 @@ void commands_send_plot_points(float x, float y) {
 	commands_send_packet(buffer, ind);
 }
 
+int commands_get_fw_version_sent_cnt(void) {
+	return fw_version_sent_cnt;
+}
+
 // TODO: The commands_set_ble_name and commands_set_ble_pin are not
 // tested. Test them, and remove this comment when done!
 
@@ -1353,9 +1838,9 @@ void commands_set_ble_name(char* name) {
 	buffer[ind++] = '\0';
 
 #ifdef HW_UART_P_DEV
-	app_uartcomm_send_packet_p(buffer, ind);
+	app_uartcomm_send_packet(buffer, ind, UART_PORT_BUILTIN);
 #else
-	app_uartcomm_send_packet(buffer, ind);
+	app_uartcomm_send_packet(buffer, ind, UART_PORT_COMM_HEADER);
 #endif
 }
 
@@ -1372,9 +1857,9 @@ void commands_set_ble_pin(char* pin) {
 	ind += pin_len;
 	buffer[ind++] = '\0';
 #ifdef HW_UART_P_DEV
-	app_uartcomm_send_packet_p(buffer, ind);
+	app_uartcomm_send_packet(buffer, ind, UART_PORT_BUILTIN);
 #else
-	app_uartcomm_send_packet(buffer, ind);
+	app_uartcomm_send_packet(buffer, ind, UART_PORT_COMM_HEADER);
 #endif
 }
 
@@ -1444,7 +1929,8 @@ static THD_FUNCTION(blocking_thread, arg) {
 
 			float r = 0.0;
 			float l = 0.0;
-			bool res = mcpwm_foc_measure_res_ind(&r, &l);
+			float ld_lq_diff = 0.0;
+			bool res = mcpwm_foc_measure_res_ind(&r, &l, &ld_lq_diff);
 			mc_interface_set_configuration(mcconf_old);
 
 			if (!res) {
@@ -1456,6 +1942,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 			send_buffer[ind++] = COMM_DETECT_MOTOR_R_L;
 			buffer_append_float32(send_buffer, r, 1e6, &ind);
 			buffer_append_float32(send_buffer, l, 1e3, &ind);
+			buffer_append_float32(send_buffer, ld_lq_diff, 1e3, &ind);
 			if (send_func_blocking) {
 				send_func_blocking(send_buffer, ind);
 			}
@@ -1497,7 +1984,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 				float current = buffer_get_float32(data, 1e3, &ind);
 
 				mcconf->motor_type = MOTOR_TYPE_FOC;
-				mcconf->foc_f_sw = 10000.0;
+				mcconf->foc_f_zv = 10000.0;
 				mcconf->foc_current_kp = 0.01;
 				mcconf->foc_current_ki = 10.0;
 				mc_interface_set_configuration(mcconf);
@@ -1545,7 +2032,7 @@ static THD_FUNCTION(blocking_thread, arg) {
 				float current = buffer_get_float32(data, 1e3, &ind);
 
 				mcconf->motor_type = MOTOR_TYPE_FOC;
-				mcconf->foc_f_sw = 10000.0;
+				mcconf->foc_f_zv = 10000.0;
 				mcconf->foc_current_kp = 0.01;
 				mcconf->foc_current_ki = 10.0;
 				mc_interface_set_configuration(mcconf);
@@ -1644,7 +2131,8 @@ static THD_FUNCTION(blocking_thread, arg) {
 			send_buffer[ind++] = COMM_PING_CAN;
 
 			for (uint8_t i = 0;i < 255;i++) {
-				if (comm_can_ping(i)) {
+				HW_TYPE hw_type;
+				if (comm_can_ping(i, &hw_type)) {
 					send_buffer[ind++] = i;
 				}
 			}
@@ -1705,6 +2193,16 @@ static THD_FUNCTION(blocking_thread, arg) {
 			}
 		} break;
 
+		case COMM_BM_HALT_REQ: {
+			bm_halt_req();
+
+			int32_t ind = 0;
+			send_buffer[ind++] = packet_id;
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
+			}
+		} break;
+
 		case COMM_BM_DISCONNECT: {
 			bm_disconnect();
 			bm_leave_nrf_debug_mode();
@@ -1758,6 +2256,20 @@ static THD_FUNCTION(blocking_thread, arg) {
 			buffer_append_int16(send_buffer, res, &ind);
 			if (send_func_blocking) {
 				send_func_blocking(send_buffer, ind + read_len);
+			}
+		} break;
+
+		case COMM_BM_MEM_WRITE: {
+			int32_t ind = 0;
+			uint32_t addr = buffer_get_uint32(data, &ind);
+
+			int res = bm_mem_write(addr, data + ind, len - ind);
+
+			ind = 0;
+			send_buffer[ind++] = packet_id;
+			buffer_append_int16(send_buffer, res, &ind);
+			if (send_func_blocking) {
+				send_func_blocking(send_buffer, ind);
 			}
 		} break;
 #endif

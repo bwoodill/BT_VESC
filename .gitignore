@@ -7,3 +7,9 @@ bins*/*
 .project
 .cproject
 .settings/language.settings.xml
+downloads/*
+tools/*
+Project/*
+
+.DS_Store
+workspace.code-workspace

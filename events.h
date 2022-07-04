@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2021 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2021 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -17,15 +17,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef SERVO_SIMPLE_H_
-#define SERVO_SIMPLE_H_
+#ifndef EVENTS_H_
+#define EVENTS_H_
 
 #include <stdbool.h>
+#include <stdint.h>
 
-// Functions
-void servo_simple_init(void);
-void servo_simple_stop(void);
-bool servo_simple_is_running(void);
-void servo_simple_set_output(float out);
+void events_init(void);
+void events_add(const char *name, float param);
 
-#endif /* SERVO_SIMPLE_H_ */
+#endif /* EVENTS_H_ */

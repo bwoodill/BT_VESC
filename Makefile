@@ -3,6 +3,8 @@
 # NOTE: Can be overridden externally.
 #
 
+USE_LISPBM=0
+
 # Compiler options here.
 ifeq ($(USE_OPT),)
   USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16 -std=gnu99 -D_GNU_SOURCE
@@ -42,7 +44,7 @@ endif
 
 # Enable this if you want to see the full log while compiling.
 ifeq ($(USE_VERBOSE_COMPILE),)
-  USE_VERBOSE_COMPILE = yes
+  USE_VERBOSE_COMPILE = no
 endif
 
 # If enabled, this option makes the build process faster by not compiling
@@ -109,8 +111,14 @@ include applications/applications.mk
 include nrf/nrf.mk
 include libcanard/canard.mk
 include imu/imu.mk
-include compression/compression.mk
+include lora/lora.mk
+include lzo/lzo.mk
 include blackmagic/blackmagic.mk
+
+ifeq ($(USE_LISPBM),1)
+  include lispBM/lispbm.mk
+  USE_OPT += -DUSE_LISPBM
+endif
 
 # Define linker script file here
 LDSCRIPT= ld_eeprom_emu.ld
@@ -145,8 +153,6 @@ CSRC = $(STARTUPSRC) \
        commands.c \
        timeout.c \
        comm_can.c \
-       ws2811.c \
-       led_external.c \
        encoder.c \
        flash_helper.c \
        mc_interface.c \
@@ -155,17 +161,26 @@ CSRC = $(STARTUPSRC) \
        confgenerator.c \
        timer.c \
        i2c_bb.c \
+       spi_bb.c \
        virtual_motor.c \
        shutdown.c \
        mempools.c \
        worker.c \
+       bms.c \
+       events.c \
        $(HWSRC) \
        $(APPSRC) \
        $(NRFSRC) \
        $(CANARDSRC) \
        $(IMUSRC) \
-       $(COMPRESSIONSRC) \
-       $(BLACKMAGICSRC)
+       $(LORASRC) \
+       $(LZOSRC) \
+       $(BLACKMAGICSRC) \
+       qmlui/qmlui.c
+       
+ifeq ($(USE_LISPBM),1)
+  CSRC += $(LISPBMSRC)
+endif
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -205,8 +220,20 @@ INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          $(NRFINC) \
          $(CANARDINC) \
          $(IMUINC) \
-         $(COMPRESSIONINC) \
-         $(BLACKMAGICINC)
+         $(LORAINC) \
+         $(LZOINC) \
+         $(BLACKMAGICINC) \
+         qmlui \
+         qmlui/hw \
+         qmlui/app
+
+ifeq ($(USE_LISPBM),1)
+  INCDIR += $(LISPBMINC)
+endif
+
+ifdef app_custom_mkfile
+include $(app_custom_mkfile)
+endif
 
 #
 # Project, sources and paths
@@ -219,6 +246,7 @@ INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
 MCU  = cortex-m4
 
 #TRGT = arm-elf-
+#TRGT = /home/benjamin/Nextcloud/appimage/gcc-arm-none-eabi-7-2018-q2-update/bin/arm-none-eabi-
 TRGT = arm-none-eabi-
 CC   = $(TRGT)gcc
 CPPC = $(TRGT)g++
@@ -281,14 +309,18 @@ ifeq ($(USE_FWLIB),yes)
   USE_OPT += -DUSE_STDPERIPH_DRIVER
 endif
 
+RULESPATH = $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC
+include $(RULESPATH)/rules.mk
+
 build/$(PROJECT).bin: build/$(PROJECT).elf 
 	$(BIN) build/$(PROJECT).elf build/$(PROJECT).bin --gap-fill 0xFF
 
 # Program
 upload: build/$(PROJECT).bin
-#	qstlink2 --cli --erase --write build/$(PROJECT).bin
-#	openocd -f interface/stlink-v2.cfg -c "set WORKAREASIZE 0x2000" -f target/stm32f4x_stlink.cfg -c "program build/$(PROJECT).elf verify reset" # Older openocd
-	openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "program build/$(PROJECT).elf verify reset exit" # For openocd 0.9
+	openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "program build/$(PROJECT).elf verify reset exit"
+
+upload_only:
+	openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined" -c "program build/$(PROJECT).elf verify reset exit"
 
 clear_option_bytes:
 	openocd -f board/stm32f4discovery.cfg -c "init" -c "stm32f2x unlock 0" -c "mww 0x40023C08 0x08192A3B; mww 0x40023C08 0x4C5D6E7F; mww 0x40023C14 0x0fffaaed" -c "exit"
@@ -306,5 +338,5 @@ upload-pi-remote: build/$(PROJECT).elf
 debug-start:
 	openocd -f stm32-bv_openocd.cfg
 
-RULESPATH = $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC
-include $(RULESPATH)/rules.mk
+size: build/$(PROJECT).elf
+	@$(SZ) $<

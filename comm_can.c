@@ -37,6 +37,7 @@
 #include "utils.h"
 #include "mempools.h"
 #include "shutdown.h"
+#include "bms.h"
 
 // Settings
 #define RX_FRAMES_SIZE	100
@@ -65,6 +66,9 @@ static int rx_frame_read;
 static int rx_frame_write;
 static thread_t *process_tp = 0;
 static thread_t *ping_tp = 0;
+static volatile HW_TYPE ping_hw_last = HW_TYPE_VESC;
+static volatile int ping_hw_last_id = -1;
+static volatile bool init_done = false;
 #endif
 
 // Variables
@@ -73,6 +77,10 @@ static can_status_msg_2 stat_msgs_2[CAN_STATUS_MSGS_TO_STORE];
 static can_status_msg_3 stat_msgs_3[CAN_STATUS_MSGS_TO_STORE];
 static can_status_msg_4 stat_msgs_4[CAN_STATUS_MSGS_TO_STORE];
 static can_status_msg_5 stat_msgs_5[CAN_STATUS_MSGS_TO_STORE];
+static io_board_adc_values io_board_adc_1_4[CAN_STATUS_MSGS_TO_STORE];
+static io_board_adc_values io_board_adc_5_8[CAN_STATUS_MSGS_TO_STORE];
+static io_board_digial_inputs io_board_digital_in[CAN_STATUS_MSGS_TO_STORE];
+static psw_status psw_stat[CAN_STATUS_MSGS_TO_STORE];
 static unsigned int detect_all_foc_res_index = 0;
 static int8_t detect_all_foc_res[50];
 
@@ -92,16 +100,11 @@ static void set_timing(int brp, int ts1, int ts2);
 #if CAN_ENABLE
 static void send_packet_wrapper(unsigned char *data, unsigned int len);
 static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced);
-static void send_status1(uint8_t id, bool replace);
-static void send_status2(uint8_t id, bool replace);
-static void send_status3(uint8_t id, bool replace);
-static void send_status4(uint8_t id, bool replace);
-static void send_status5(uint8_t id, bool replace);
 #endif
 
 // Function pointers
-static void(*sid_callback)(uint32_t id, uint8_t *data, uint8_t len) = 0;
-static void(*eid_callback)(uint32_t id, uint8_t *data, uint8_t len) = 0;
+static bool(*sid_callback)(uint32_t id, uint8_t *data, uint8_t len) = 0;
+static bool(*eid_callback)(uint32_t id, uint8_t *data, uint8_t len) = 0;
 
 void comm_can_init(void) {
 	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
@@ -109,6 +112,13 @@ void comm_can_init(void) {
 		stat_msgs_2[i].id = -1;
 		stat_msgs_3[i].id = -1;
 		stat_msgs_4[i].id = -1;
+		stat_msgs_5[i].id = -1;
+
+		io_board_adc_1_4[i].id = -1;
+		io_board_adc_5_8[i].id = -1;
+		io_board_digital_in[i].id = -1;
+
+		psw_stat[i].id = -1;
 	}
 
 #if CAN_ENABLE
@@ -127,7 +137,27 @@ void comm_can_init(void) {
 			PAL_STM32_OTYPE_PUSHPULL |
 			PAL_STM32_OSPEED_MID1);
 
+#ifdef HW_CAN2_DEV
+	palSetPadMode(HW_CAN2_RX_PORT, HW_CAN2_RX_PIN,
+			PAL_MODE_ALTERNATE(HW_CAN2_GPIO_AF) |
+			PAL_STM32_OTYPE_PUSHPULL |
+			PAL_STM32_OSPEED_MID1);
+	palSetPadMode(HW_CAN2_TX_PORT, HW_CAN2_TX_PIN,
+			PAL_MODE_ALTERNATE(HW_CAN2_GPIO_AF) |
+			PAL_STM32_OTYPE_PUSHPULL |
+			PAL_STM32_OSPEED_MID1);
+
+	canStart(&CAND1, &cancfg);
+	canStart(&CAND2, &cancfg);
+#else
+	// CAND1 must be running for CAND2 to work
+	CANDriver *cand = &HW_CAN_DEV;
+	if (cand == &CAND2) {
+		canStart(&CAND1, &cancfg);
+	}
+
 	canStart(&HW_CAN_DEV, &cancfg);
+#endif
 
 	canard_driver_init();
 
@@ -142,6 +172,8 @@ void comm_can_init(void) {
 			NORMALPRIO, cancom_status_internal_thread, NULL);
 #endif
 
+	init_done = true;
+
 #endif
 }
 
@@ -155,6 +187,7 @@ void comm_can_set_baud(CAN_BAUD baud) {
 	case CAN_BAUD_20K:	set_timing(149, 10, 1); break;
 	case CAN_BAUD_50K:	set_timing(59, 10, 1); break;
 	case CAN_BAUD_75K:	set_timing(39, 10, 1); break;
+	case CAN_BAUD_100K:	set_timing(29, 10, 1); break;
 	default: break;
 	}
 }
@@ -181,6 +214,10 @@ void comm_can_transmit_eid_replace(uint32_t id, const uint8_t *data, uint8_t len
 	}
 
 #if CAN_ENABLE
+	if (!init_done) {
+		return;
+	}
+
 #ifdef HW_HAS_DUAL_MOTORS
 	if (app_get_configuration()->can_mode == CAN_MODE_VESC) {
 		if (replace && ((id & 0xFF) == utils_second_motor_id() ||
@@ -203,7 +240,18 @@ void comm_can_transmit_eid_replace(uint32_t id, const uint8_t *data, uint8_t len
 	memcpy(txmsg.data8, data, len);
 
 	chMtxLock(&can_mtx);
+#ifdef HW_CAN2_DEV
+	for (int i = 0;i < 10;i++) {
+		msg_t ok = canTransmit(&HW_CAN_DEV, CAN_ANY_MAILBOX, &txmsg, TIME_IMMEDIATE);
+		msg_t ok2 = canTransmit(&HW_CAN2_DEV, CAN_ANY_MAILBOX, &txmsg, TIME_IMMEDIATE);
+		if (ok == MSG_OK || ok2 == MSG_OK) {
+			break;
+		}
+		chThdSleepMicroseconds(500);
+	}
+#else
 	canTransmit(&HW_CAN_DEV, CAN_ANY_MAILBOX, &txmsg, MS2ST(5));
+#endif
 	chMtxUnlock(&can_mtx);
 #else
 	(void)id;
@@ -214,7 +262,7 @@ void comm_can_transmit_eid_replace(uint32_t id, const uint8_t *data, uint8_t len
 }
 
 void comm_can_transmit_eid(uint32_t id, const uint8_t *data, uint8_t len) {
-	comm_can_transmit_eid_replace(id, data, len, true);
+	comm_can_transmit_eid_replace(id, data, len, false);
 }
 
 void comm_can_transmit_sid(uint32_t id, uint8_t *data, uint8_t len) {
@@ -223,6 +271,10 @@ void comm_can_transmit_sid(uint32_t id, uint8_t *data, uint8_t len) {
 	}
 
 #if CAN_ENABLE
+	if (!init_done) {
+		return;
+	}
+
 	CANTxFrame txmsg;
 	txmsg.IDE = CAN_IDE_STD;
 	txmsg.SID = id;
@@ -231,7 +283,18 @@ void comm_can_transmit_sid(uint32_t id, uint8_t *data, uint8_t len) {
 	memcpy(txmsg.data8, data, len);
 
 	chMtxLock(&can_mtx);
+#ifdef HW_CAN2_DEV
+	for (int i = 0;i < 10;i++) {
+		msg_t ok = canTransmit(&HW_CAN_DEV, CAN_ANY_MAILBOX, &txmsg, TIME_IMMEDIATE);
+		msg_t ok2 = canTransmit(&HW_CAN2_DEV, CAN_ANY_MAILBOX, &txmsg, TIME_IMMEDIATE);
+		if (ok == MSG_OK || ok2 == MSG_OK) {
+			break;
+		}
+		chThdSleepMicroseconds(500);
+	}
+#else
 	canTransmit(&HW_CAN_DEV, CAN_ANY_MAILBOX, &txmsg, MS2ST(5));
+#endif
 	chMtxUnlock(&can_mtx);
 #else
 	(void)id;
@@ -243,21 +306,26 @@ void comm_can_transmit_sid(uint32_t id, uint8_t *data, uint8_t len) {
 /**
  * Set function to be called when standard CAN frames are received.
  *
- * @param p_func
- * Pointer to the function.
- */
-void comm_can_set_sid_rx_callback(void (*p_func)(uint32_t id, uint8_t *data, uint8_t len)) {
-	sid_callback = p_func;
-}
-
-/**
- * Set function to be called when extended CAN frames are received. Will only be called when
- * the CAN mode is CAN_MODE_COMM_BRIDGE.
+ * The callback should return true if the frame was used by the application, false otherwise. if
+ * the frame was used, no further processing will be done here.
  *
  * @param p_func
  * Pointer to the function.
  */
-void comm_can_set_eid_rx_callback(void (*p_func)(uint32_t id, uint8_t *data, uint8_t len)) {
+void comm_can_set_sid_rx_callback(bool (*p_func)(uint32_t id, uint8_t *data, uint8_t len)) {
+	sid_callback = p_func;
+}
+
+/**
+ * Set function to be called when extended CAN frames are received.
+ *
+ * The callback should return true if the frame was used by the application, false otherwise. if
+ * the frame was used, no further processing will be done here.
+ *
+ * @param p_func
+ * Pointer to the function.
+ */
+void comm_can_set_eid_rx_callback(bool (*p_func)(uint32_t id, uint8_t *data, uint8_t len)) {
 	eid_callback = p_func;
 }
 
@@ -290,8 +358,8 @@ void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len
 		send_buffer[ind++] = send;
 		memcpy(send_buffer + ind, data, len);
 		ind += len;
-		comm_can_transmit_eid(controller_id |
-				((uint32_t)CAN_PACKET_PROCESS_SHORT_BUFFER << 8), send_buffer, ind);
+		comm_can_transmit_eid_replace(controller_id |
+				((uint32_t)CAN_PACKET_PROCESS_SHORT_BUFFER << 8), send_buffer, ind, true);
 	} else {
 		unsigned int end_a = 0;
 		for (unsigned int i = 0;i < len;i += 7) {
@@ -311,8 +379,8 @@ void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len
 				memcpy(send_buffer + 1, data + i, send_len);
 			}
 
-			comm_can_transmit_eid(controller_id |
-					((uint32_t)CAN_PACKET_FILL_RX_BUFFER << 8), send_buffer, send_len + 1);
+			comm_can_transmit_eid_replace(controller_id |
+					((uint32_t)CAN_PACKET_FILL_RX_BUFFER << 8), send_buffer, send_len + 1, true);
 		}
 
 		for (unsigned int i = end_a;i < len;i += 6) {
@@ -327,8 +395,8 @@ void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len
 				memcpy(send_buffer + 2, data + i, send_len);
 			}
 
-			comm_can_transmit_eid(controller_id |
-					((uint32_t)CAN_PACKET_FILL_RX_BUFFER_LONG << 8), send_buffer, send_len + 2);
+			comm_can_transmit_eid_replace(controller_id |
+					((uint32_t)CAN_PACKET_FILL_RX_BUFFER_LONG << 8), send_buffer, send_len + 2, true);
 		}
 
 		uint32_t ind = 0;
@@ -340,8 +408,8 @@ void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len
 		send_buffer[ind++] = (uint8_t)(crc >> 8);
 		send_buffer[ind++] = (uint8_t)(crc & 0xFF);
 
-		comm_can_transmit_eid(controller_id |
-				((uint32_t)CAN_PACKET_PROCESS_RX_BUFFER << 8), send_buffer, ind++);
+		comm_can_transmit_eid_replace(controller_id |
+				((uint32_t)CAN_PACKET_PROCESS_RX_BUFFER << 8), send_buffer, ind++, true);
 	}
 }
 
@@ -349,40 +417,49 @@ void comm_can_set_duty(uint8_t controller_id, float duty) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
 	buffer_append_int32(buffer, (int32_t)(duty * 100000.0), &send_index);
-	comm_can_transmit_eid(controller_id |
-			((uint32_t)CAN_PACKET_SET_DUTY << 8), buffer, send_index);
+	comm_can_transmit_eid_replace(controller_id |
+			((uint32_t)CAN_PACKET_SET_DUTY << 8), buffer, send_index, true);
 }
 
 void comm_can_set_current(uint8_t controller_id, float current) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
 	buffer_append_int32(buffer, (int32_t)(current * 1000.0), &send_index);
-	comm_can_transmit_eid(controller_id |
-			((uint32_t)CAN_PACKET_SET_CURRENT << 8), buffer, send_index);
+	comm_can_transmit_eid_replace(controller_id |
+			((uint32_t)CAN_PACKET_SET_CURRENT << 8), buffer, send_index, true);
+}
+
+void comm_can_set_current_off_delay(uint8_t controller_id, float current, float off_delay) {
+	int32_t send_index = 0;
+	uint8_t buffer[6];
+	buffer_append_int32(buffer, (int32_t)(current * 1000.0), &send_index);
+	buffer_append_float16(buffer, off_delay, 1e3, &send_index);
+	comm_can_transmit_eid_replace(controller_id |
+			((uint32_t)CAN_PACKET_SET_CURRENT << 8), buffer, send_index, true);
 }
 
 void comm_can_set_current_brake(uint8_t controller_id, float current) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
 	buffer_append_int32(buffer, (int32_t)(current * 1000.0), &send_index);
-	comm_can_transmit_eid(controller_id |
-			((uint32_t)CAN_PACKET_SET_CURRENT_BRAKE << 8), buffer, send_index);
+	comm_can_transmit_eid_replace(controller_id |
+			((uint32_t)CAN_PACKET_SET_CURRENT_BRAKE << 8), buffer, send_index, true);
 }
 
 void comm_can_set_rpm(uint8_t controller_id, float rpm) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
 	buffer_append_int32(buffer, (int32_t)rpm, &send_index);
-	comm_can_transmit_eid(controller_id |
-			((uint32_t)CAN_PACKET_SET_RPM << 8), buffer, send_index);
+	comm_can_transmit_eid_replace(controller_id |
+			((uint32_t)CAN_PACKET_SET_RPM << 8), buffer, send_index, true);
 }
 
 void comm_can_set_pos(uint8_t controller_id, float pos) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
 	buffer_append_int32(buffer, (int32_t)(pos * 1000000.0), &send_index);
-	comm_can_transmit_eid(controller_id |
-			((uint32_t)CAN_PACKET_SET_POS << 8), buffer, send_index);
+	comm_can_transmit_eid_replace(controller_id |
+			((uint32_t)CAN_PACKET_SET_POS << 8), buffer, send_index, true);
 }
 
 /**
@@ -398,8 +475,20 @@ void comm_can_set_current_rel(uint8_t controller_id, float current_rel) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
 	buffer_append_float32(buffer, current_rel, 1e5, &send_index);
-	comm_can_transmit_eid(controller_id |
-			((uint32_t)CAN_PACKET_SET_CURRENT_REL << 8), buffer, send_index);
+	comm_can_transmit_eid_replace(controller_id |
+			((uint32_t)CAN_PACKET_SET_CURRENT_REL << 8), buffer, send_index, true);
+}
+
+/**
+ * Same as above, but also sets the off delay
+ */
+void comm_can_set_current_rel_off_delay(uint8_t controller_id, float current_rel, float off_delay) {
+	int32_t send_index = 0;
+	uint8_t buffer[4];
+	buffer_append_float32(buffer, current_rel, 1e5, &send_index);
+	buffer_append_float16(buffer, off_delay, 1e3, &send_index);
+	comm_can_transmit_eid_replace(controller_id |
+			((uint32_t)CAN_PACKET_SET_CURRENT_REL << 8), buffer, send_index, true);
 }
 
 /**
@@ -415,8 +504,8 @@ void comm_can_set_current_brake_rel(uint8_t controller_id, float current_rel) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
 	buffer_append_float32(buffer, current_rel, 1e5, &send_index);
-	comm_can_transmit_eid(controller_id |
-			((uint32_t)CAN_PACKET_SET_CURRENT_BRAKE_REL << 8), buffer, send_index);
+	comm_can_transmit_eid_replace(controller_id |
+			((uint32_t)CAN_PACKET_SET_CURRENT_BRAKE_REL << 8), buffer, send_index, true);
 }
 
 /**
@@ -432,8 +521,8 @@ void comm_can_set_handbrake(uint8_t controller_id, float current) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
 	buffer_append_float32(buffer, current, 1e3, &send_index);
-	comm_can_transmit_eid(controller_id |
-			((uint32_t)CAN_PACKET_SET_CURRENT_HANDBRAKE << 8), buffer, send_index);
+	comm_can_transmit_eid_replace(controller_id |
+			((uint32_t)CAN_PACKET_SET_CURRENT_HANDBRAKE << 8), buffer, send_index, true);
 }
 
 /**
@@ -449,8 +538,8 @@ void comm_can_set_handbrake_rel(uint8_t controller_id, float current_rel) {
 	int32_t send_index = 0;
 	uint8_t buffer[4];
 	buffer_append_float32(buffer, current_rel, 1e5, &send_index);
-	comm_can_transmit_eid(controller_id |
-			((uint32_t)CAN_PACKET_SET_CURRENT_HANDBRAKE_REL << 8), buffer, send_index);
+	comm_can_transmit_eid_replace(controller_id |
+			((uint32_t)CAN_PACKET_SET_CURRENT_HANDBRAKE_REL << 8), buffer, send_index, true);
 }
 
 /**
@@ -459,10 +548,13 @@ void comm_can_set_handbrake_rel(uint8_t controller_id, float current_rel) {
  * @param controller_id
  * The ID of the VESC.
  *
+ * @param hw_type
+ * The hardware type of the CAN device.
+ *
  * @return
  * True for success, false otherwise.
  */
-bool comm_can_ping(uint8_t controller_id) {
+bool comm_can_ping(uint8_t controller_id, HW_TYPE *hw_type) {
 #if CAN_ENABLE
 	if (app_get_configuration()->can_mode != CAN_MODE_VESC) {
 		return false;
@@ -477,16 +569,26 @@ bool comm_can_ping(uint8_t controller_id) {
 	ping_tp = chThdGetSelfX();
 	chEvtGetAndClearEvents(ALL_EVENTS);
 
+	ping_hw_last_id = controller_id;
+
 	uint8_t buffer[1];
 	buffer[0] = app_get_configuration()->controller_id;
-	comm_can_transmit_eid(controller_id |
-			((uint32_t)CAN_PACKET_PING << 8), buffer, 1);
+	comm_can_transmit_eid_replace(controller_id |
+			((uint32_t)CAN_PACKET_PING << 8), buffer, 1, true);
 
 	int ret = chEvtWaitAnyTimeout(1 << 29, MS2ST(10));
 	ping_tp = 0;
+
+	if (ret != 0) {
+		if (hw_type) {
+			*hw_type = ping_hw_last;
+		}
+	}
+
 	return ret != 0;
 #else
 	(void)controller_id;
+	(void)hw_type;
 	return 0;
 #endif
 }
@@ -509,8 +611,8 @@ void comm_can_detect_apply_all_foc(uint8_t controller_id, bool activate_status_m
 	buffer[send_index++] = app_get_configuration()->controller_id;
 	buffer[send_index++] = activate_status_msgs;
 	buffer_append_float32(buffer, max_power_loss, 1e3, &send_index);
-	comm_can_transmit_eid(controller_id |
-			((uint32_t)CAN_PACKET_DETECT_APPLY_ALL_FOC << 8), buffer, send_index);
+	comm_can_transmit_eid_replace(controller_id |
+			((uint32_t)CAN_PACKET_DETECT_APPLY_ALL_FOC << 8), buffer, send_index, true);
 }
 
 /**
@@ -534,9 +636,9 @@ void comm_can_conf_current_limits(uint8_t controller_id,
 	uint8_t buffer[8];
 	buffer_append_float32(buffer, min, 1e3, &send_index);
 	buffer_append_float32(buffer, max, 1e3, &send_index);
-	comm_can_transmit_eid(controller_id |
+	comm_can_transmit_eid_replace(controller_id |
 			((uint32_t)(store ? CAN_PACKET_CONF_STORE_CURRENT_LIMITS :
-					CAN_PACKET_CONF_CURRENT_LIMITS) << 8), buffer, send_index);
+					CAN_PACKET_CONF_CURRENT_LIMITS) << 8), buffer, send_index, true);
 }
 
 /**
@@ -560,9 +662,9 @@ void comm_can_conf_current_limits_in(uint8_t controller_id,
 	uint8_t buffer[8];
 	buffer_append_float32(buffer, min, 1e3, &send_index);
 	buffer_append_float32(buffer, max, 1e3, &send_index);
-	comm_can_transmit_eid(controller_id |
+	comm_can_transmit_eid_replace(controller_id |
 			((uint32_t)(store ? CAN_PACKET_CONF_STORE_CURRENT_LIMITS_IN :
-					CAN_PACKET_CONF_CURRENT_LIMITS_IN) << 8), buffer, send_index);
+					CAN_PACKET_CONF_CURRENT_LIMITS_IN) << 8), buffer, send_index, true);
 }
 
 /**
@@ -586,9 +688,9 @@ void comm_can_conf_foc_erpms(uint8_t controller_id,
 	uint8_t buffer[8];
 	buffer_append_float32(buffer, foc_openloop_rpm, 1e3, &send_index);
 	buffer_append_float32(buffer, foc_sl_erpm, 1e3, &send_index);
-	comm_can_transmit_eid(controller_id |
+	comm_can_transmit_eid_replace(controller_id |
 			((uint32_t)(store ? CAN_PACKET_CONF_STORE_FOC_ERPMS :
-					CAN_PACKET_CONF_FOC_ERPMS) << 8), buffer, send_index);
+					CAN_PACKET_CONF_FOC_ERPMS) << 8), buffer, send_index, true);
 }
 
 int comm_can_detect_all_foc_res(unsigned int index) {
@@ -613,16 +715,16 @@ void comm_can_conf_battery_cut(uint8_t controller_id,
 	uint8_t buffer[8];
 	buffer_append_float32(buffer, start, 1e3, &send_index);
 	buffer_append_float32(buffer, end, 1e3, &send_index);
-	comm_can_transmit_eid(controller_id |
+	comm_can_transmit_eid_replace(controller_id |
 			((uint32_t)(store ? CAN_PACKET_CONF_STORE_BATTERY_CUT :
-					CAN_PACKET_CONF_BATTERY_CUT) << 8), buffer, send_index);
+					CAN_PACKET_CONF_BATTERY_CUT) << 8), buffer, send_index, true);
 }
 
 void comm_can_shutdown(uint8_t controller_id) {
 	int32_t send_index = 0;
 	uint8_t buffer[8];
-	comm_can_transmit_eid(controller_id |
-			((uint32_t)(CAN_PACKET_SHUTDOWN) << 8), buffer, send_index);
+	comm_can_transmit_eid_replace(controller_id |
+			((uint32_t)(CAN_PACKET_SHUTDOWN) << 8), buffer, send_index, true);
 }
 
 /**
@@ -805,6 +907,135 @@ can_status_msg_5 *comm_can_get_status_msg_5_id(int id) {
 	return 0;
 }
 
+io_board_adc_values *comm_can_get_io_board_adc_1_4_index(int index) {
+	if (index < CAN_STATUS_MSGS_TO_STORE) {
+		return &io_board_adc_1_4[index];
+	} else {
+		return 0;
+	}
+}
+
+io_board_adc_values *comm_can_get_io_board_adc_1_4_id(int id) {
+	if (id == 255 && io_board_adc_1_4[0].id >= 0) {
+		return &io_board_adc_1_4[0];
+	}
+
+	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+		if (io_board_adc_1_4[i].id == id) {
+			return &io_board_adc_1_4[i];
+		}
+	}
+
+	return 0;
+}
+
+io_board_adc_values *comm_can_get_io_board_adc_5_8_index(int index) {
+	if (index < CAN_STATUS_MSGS_TO_STORE) {
+		return &io_board_adc_5_8[index];
+	} else {
+		return 0;
+	}
+}
+
+io_board_adc_values *comm_can_get_io_board_adc_5_8_id(int id) {
+	if (id == 255 && io_board_adc_5_8[0].id >= 0) {
+		return &io_board_adc_5_8[0];
+	}
+
+	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+		if (io_board_adc_5_8[i].id == id) {
+			return &io_board_adc_5_8[i];
+		}
+	}
+
+	return 0;
+}
+
+io_board_digial_inputs *comm_can_get_io_board_digital_in_index(int index) {
+	if (index < CAN_STATUS_MSGS_TO_STORE) {
+		return &io_board_digital_in[index];
+	} else {
+		return 0;
+	}
+}
+
+io_board_digial_inputs *comm_can_get_io_board_digital_in_id(int id) {
+	if (id == 255 && io_board_digital_in[0].id >= 0) {
+		return &io_board_digital_in[0];
+	}
+
+	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+		if (io_board_digital_in[i].id == id) {
+			return &io_board_digital_in[i];
+		}
+	}
+
+	return 0;
+}
+
+void comm_can_io_board_set_output_digital(int id, int channel, bool on) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+
+	buffer[send_index++] = channel;
+	buffer[send_index++] = 1;
+	buffer[send_index++] = on ? 1 : 0;
+
+	comm_can_transmit_eid_replace(id | ((uint32_t)CAN_PACKET_IO_BOARD_SET_OUTPUT_DIGITAL << 8),
+			buffer, send_index, true);
+}
+
+void comm_can_io_board_set_output_pwm(int id, int channel, float duty) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+
+	buffer[send_index++] = channel;
+	buffer_append_float16(buffer, duty, 1e3, &send_index);
+
+	comm_can_transmit_eid_replace(id | ((uint32_t)CAN_PACKET_IO_BOARD_SET_OUTPUT_PWM << 8),
+			buffer, send_index, true);
+}
+
+psw_status *comm_can_get_psw_status_index(int index) {
+	if (index < CAN_STATUS_MSGS_TO_STORE) {
+		return &psw_stat[index];
+	} else {
+		return 0;
+	}
+}
+
+psw_status *comm_can_get_psw_status_id(int id) {
+	for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+		if (psw_stat[i].id == id) {
+			return &psw_stat[i];
+		}
+	}
+
+	return 0;
+}
+
+void comm_can_psw_switch(int id, bool is_on, bool plot) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+
+	buffer[send_index++] = is_on ? 1 : 0;
+	buffer[send_index++] = plot ? 1 : 0;
+
+	comm_can_transmit_eid_replace(id | ((uint32_t)CAN_PACKET_PSW_SWITCH << 8),
+			buffer, send_index, true);
+}
+
+void comm_can_update_pid_pos_offset(int id, float angle_now, bool store) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+
+	buffer_append_float32(buffer, angle_now, 1e4, &send_index);
+	buffer[send_index++] = store;
+
+	comm_can_transmit_eid_replace(id | ((uint32_t)CAN_PACKET_UPDATE_PID_POS_OFFSET << 8),
+			buffer, send_index, true);
+}
+
 CANRxFrame *comm_can_get_rx_frame(void) {
 #if CAN_ENABLE
 	chMtxLock(&can_rx_mtx);
@@ -826,6 +1057,55 @@ CANRxFrame *comm_can_get_rx_frame(void) {
 #endif
 }
 
+void comm_can_send_status1(uint8_t id, bool replace) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+	buffer_append_int32(buffer, (int32_t)mc_interface_get_rpm(), &send_index);
+	buffer_append_int16(buffer, (int16_t)(mc_interface_get_tot_current_filtered() * 1e1), &send_index);
+	buffer_append_int16(buffer, (int16_t)(mc_interface_get_duty_cycle_now() * 1e3), &send_index);
+	comm_can_transmit_eid_replace(id | ((uint32_t)CAN_PACKET_STATUS << 8),
+			buffer, send_index, replace);
+}
+
+void comm_can_send_status2(uint8_t id, bool replace) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+	buffer_append_int32(buffer, (int32_t)(mc_interface_get_amp_hours(false) * 1e4), &send_index);
+	buffer_append_int32(buffer, (int32_t)(mc_interface_get_amp_hours_charged(false) * 1e4), &send_index);
+	comm_can_transmit_eid_replace(id | ((uint32_t)CAN_PACKET_STATUS_2 << 8),
+			buffer, send_index, replace);
+}
+
+void comm_can_send_status3(uint8_t id, bool replace) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+	buffer_append_int32(buffer, (int32_t)(mc_interface_get_watt_hours(false) * 1e4), &send_index);
+	buffer_append_int32(buffer, (int32_t)(mc_interface_get_watt_hours_charged(false) * 1e4), &send_index);
+	comm_can_transmit_eid_replace(id | ((uint32_t)CAN_PACKET_STATUS_3 << 8),
+			buffer, send_index, replace);
+}
+
+void comm_can_send_status4(uint8_t id, bool replace) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+	buffer_append_int16(buffer, (int16_t)(mc_interface_temp_fet_filtered() * 1e1), &send_index);
+	buffer_append_int16(buffer, (int16_t)(mc_interface_temp_motor_filtered() * 1e1), &send_index);
+	buffer_append_int16(buffer, (int16_t)(mc_interface_get_tot_current_in_filtered() * 1e1), &send_index);
+	buffer_append_int16(buffer, (int16_t)(mc_interface_get_pid_pos_now() * 50.0), &send_index);
+	comm_can_transmit_eid_replace(id | ((uint32_t)CAN_PACKET_STATUS_4 << 8),
+			buffer, send_index, replace);
+}
+
+void comm_can_send_status5(uint8_t id, bool replace) {
+	int32_t send_index = 0;
+	uint8_t buffer[8];
+	buffer_append_int32(buffer, mc_interface_get_tachometer_value(false), &send_index);
+	buffer_append_int16(buffer, (int16_t)(mc_interface_get_input_voltage_filtered() * 1e1), &send_index);
+	buffer_append_int16(buffer, 0, &send_index); // Reserved for now
+	comm_can_transmit_eid_replace(id | ((uint32_t)CAN_PACKET_STATUS_5 << 8),
+			buffer, send_index, replace);
+}
+
 #if CAN_ENABLE
 static THD_FUNCTION(cancom_read_thread, arg) {
 	(void)arg;
@@ -835,6 +1115,10 @@ static THD_FUNCTION(cancom_read_thread, arg) {
 	CANRxFrame rxmsg;
 
 	chEvtRegister(&HW_CAN_DEV.rxfull_event, &el, 0);
+#ifdef HW_CAN2_DEV
+	event_listener_t el2;
+	chEvtRegister(&HW_CAN2_DEV.rxfull_event, &el2, 0);
+#endif
 
 	while(!chThdShouldTerminateX()) {
 		// Feed watchdog
@@ -858,9 +1142,29 @@ static THD_FUNCTION(cancom_read_thread, arg) {
 
 			result = canReceive(&HW_CAN_DEV, CAN_ANY_MAILBOX, &rxmsg, TIME_IMMEDIATE);
 		}
+
+#ifdef HW_CAN2_DEV
+		result = canReceive(&HW_CAN2_DEV, CAN_ANY_MAILBOX, &rxmsg, TIME_IMMEDIATE);
+
+		while (result == MSG_OK) {
+			chMtxLock(&can_rx_mtx);
+			rx_frames[rx_frame_write++] = rxmsg;
+			if (rx_frame_write == RX_FRAMES_SIZE) {
+				rx_frame_write = 0;
+			}
+			chMtxUnlock(&can_rx_mtx);
+
+			chEvtSignal(process_tp, (eventmask_t) 1);
+
+			result = canReceive(&HW_CAN2_DEV, CAN_ANY_MAILBOX, &rxmsg, TIME_IMMEDIATE);
+		}
+#endif
 	}
 
 	chEvtUnregister(&HW_CAN_DEV.rxfull_event, &el);
+#ifdef HW_CAN2_DEV
+	chEvtUnregister(&HW_CAN2_DEV.rxfull_event, &el2);
+#endif
 }
 
 static THD_FUNCTION(cancom_process_thread, arg) {
@@ -900,10 +1204,24 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 			CANRxFrame rxmsg = *rxmsg_tmp;
 
 			if (rxmsg.IDE == CAN_IDE_EXT) {
-				decode_msg(rxmsg.EID, rxmsg.data8, rxmsg.DLC, false);
+				bool eid_cb_used = false;
+				if (eid_callback) {
+					eid_cb_used = eid_callback(rxmsg.EID, rxmsg.data8, rxmsg.DLC);
+				}
+
+				if (!eid_cb_used) {
+					if (!bms_process_can_frame(rxmsg.EID, rxmsg.data8, rxmsg.DLC, true)) {
+						decode_msg(rxmsg.EID, rxmsg.data8, rxmsg.DLC, false);
+					}
+				}
 			} else {
+				bool sid_cb_used = false;
 				if (sid_callback) {
-					sid_callback(rxmsg.SID, rxmsg.data8, rxmsg.DLC);
+					sid_cb_used = sid_callback(rxmsg.SID, rxmsg.data8, rxmsg.DLC);
+				}
+
+				if (!sid_cb_used) {
+					bms_process_can_frame(rxmsg.SID, rxmsg.data8, rxmsg.DLC, false);
 				}
 			}
 		}
@@ -912,8 +1230,8 @@ static THD_FUNCTION(cancom_process_thread, arg) {
 
 #ifdef HW_HAS_DUAL_MOTORS
 /*
- * This thread sends all status messages and uses the internal decoer. That
- * way the second motor always show up on the CAN-bus.
+ * This thread sends all status messages and uses the internal decoder. That
+ * way the second motor always shows up on the CAN-bus.
  */
 static THD_FUNCTION(cancom_status_internal_thread, arg) {
 	(void)arg;
@@ -922,11 +1240,11 @@ static THD_FUNCTION(cancom_status_internal_thread, arg) {
 	mc_interface_select_motor_thread(2);
 
 	for (;;) {
-		send_status1(utils_second_motor_id(), true);
-		send_status2(utils_second_motor_id(), true);
-		send_status3(utils_second_motor_id(), true);
-		send_status4(utils_second_motor_id(), true);
-		send_status5(utils_second_motor_id(), true);
+		comm_can_send_status1(utils_second_motor_id(), true);
+		comm_can_send_status2(utils_second_motor_id(), true);
+		comm_can_send_status3(utils_second_motor_id(), true);
+		comm_can_send_status4(utils_second_motor_id(), true);
+		comm_can_send_status5(utils_second_motor_id(), true);
 		chThdSleepMilliseconds(2);
 	}
 }
@@ -946,10 +1264,10 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 					conf->send_can_status == CAN_STATUS_1_2_3_4 ||
 					conf->send_can_status == CAN_STATUS_1_2_3_4_5) {
 				mc_interface_select_motor_thread(1);
-				send_status1(conf->controller_id, false);
+				comm_can_send_status1(conf->controller_id, false);
 #ifdef HW_HAS_DUAL_MOTORS
 				mc_interface_select_motor_thread(2);
-				send_status1(utils_second_motor_id(), false);
+				comm_can_send_status1(utils_second_motor_id(), false);
 #endif
 			}
 
@@ -958,10 +1276,10 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 					conf->send_can_status == CAN_STATUS_1_2_3_4 ||
 					conf->send_can_status == CAN_STATUS_1_2_3_4_5) {
 				mc_interface_select_motor_thread(1);
-				send_status2(conf->controller_id, false);
+				comm_can_send_status2(conf->controller_id, false);
 #ifdef HW_HAS_DUAL_MOTORS
 				mc_interface_select_motor_thread(2);
-				send_status2(utils_second_motor_id(), false);
+				comm_can_send_status2(utils_second_motor_id(), false);
 #endif
 			}
 
@@ -969,31 +1287,36 @@ static THD_FUNCTION(cancom_status_thread, arg) {
 					conf->send_can_status == CAN_STATUS_1_2_3_4 ||
 					conf->send_can_status == CAN_STATUS_1_2_3_4_5) {
 				mc_interface_select_motor_thread(1);
-				send_status3(conf->controller_id, false);
+				comm_can_send_status3(conf->controller_id, false);
 #ifdef HW_HAS_DUAL_MOTORS
 				mc_interface_select_motor_thread(2);
-				send_status3(utils_second_motor_id(), false);
+				comm_can_send_status3(utils_second_motor_id(), false);
 #endif
 			}
 
 			if (conf->send_can_status == CAN_STATUS_1_2_3_4 ||
 					conf->send_can_status == CAN_STATUS_1_2_3_4_5) {
 				mc_interface_select_motor_thread(1);
-				send_status4(conf->controller_id, false);
+				comm_can_send_status4(conf->controller_id, false);
 #ifdef HW_HAS_DUAL_MOTORS
 				mc_interface_select_motor_thread(2);
-				send_status4(utils_second_motor_id(), false);
+				comm_can_send_status4(utils_second_motor_id(), false);
 #endif
 			}
 
 			if (conf->send_can_status == CAN_STATUS_1_2_3_4_5) {
 				mc_interface_select_motor_thread(1);
-				send_status5(conf->controller_id, false);
+				comm_can_send_status5(conf->controller_id, false);
 #ifdef HW_HAS_DUAL_MOTORS
 				mc_interface_select_motor_thread(2);
-				send_status5(utils_second_motor_id(), false);
+				comm_can_send_status5(utils_second_motor_id(), false);
 #endif
 			}
+		}
+
+		while (conf->send_can_status_rate_hz == 0) {
+			chThdSleepMilliseconds(10);
+			conf = app_get_configuration();
 		}
 
 		systime_t sleep_time = CH_CFG_ST_FREQUENCY / conf->send_can_status_rate_hz;
@@ -1034,6 +1357,8 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 	int id2 = id1;
 #endif
 
+	// The packets here are addressed to this VESC or to all VESCs (id=255)
+
 	if (id == 255 || id == id1 || id == id2) {
 		switch (cmd) {
 		case CAN_PACKET_SET_DUTY:
@@ -1045,6 +1370,11 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 		case CAN_PACKET_SET_CURRENT:
 			ind = 0;
 			mc_interface_set_current(buffer_get_float32(data8, 1e3, &ind));
+
+			if (len >= 6) {
+				mc_interface_set_current_off_delay(buffer_get_float16(data8, 1e3, &ind));
+			}
+
 			timeout_reset();
 			break;
 
@@ -1111,7 +1441,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 					commands_process_packet(rx_buffer, rxbuf_len, send_packet_wrapper);
 					break;
 				case 1:
-					commands_send_packet(rx_buffer, rxbuf_len);
+					commands_send_packet_can_last(rx_buffer, rxbuf_len);
 					break;
 				case 2:
 					commands_process_packet(rx_buffer, rxbuf_len, 0);
@@ -1142,7 +1472,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 				commands_process_packet(data8 + ind, len - ind, send_packet_wrapper);
 				break;
 			case 1:
-				commands_send_packet(data8 + ind, len - ind);
+				commands_send_packet_can_last(data8 + ind, len - ind);
 				break;
 			case 2:
 				commands_process_packet(data8 + ind, len - ind, 0);
@@ -1155,6 +1485,11 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			case CAN_PACKET_SET_CURRENT_REL:
 				ind = 0;
 				mc_interface_set_current_rel(buffer_get_float32(data8, 1e5, &ind));
+
+				if (len >= 6) {
+					mc_interface_set_current_off_delay(buffer_get_float16(data8, 1e3, &ind));
+				}
+
 				timeout_reset();
 				break;
 
@@ -1177,15 +1512,20 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 				break;
 
 			case CAN_PACKET_PING: {
-				uint8_t buffer[1];
-				buffer[0] = app_get_configuration()->controller_id;
-				comm_can_transmit_eid(data8[0] |
-						((uint32_t)CAN_PACKET_PONG << 8), buffer, 1);
+				uint8_t buffer[2];
+				buffer[0] = is_replaced ? utils_second_motor_id() : id;
+				buffer[1] = HW_TYPE_VESC;
+				comm_can_transmit_eid_replace(data8[0] |
+						((uint32_t)CAN_PACKET_PONG << 8), buffer, 2, true);
 			} break;
 
 			case CAN_PACKET_PONG:
-				// data8[0]; // Sender ID
-				if (ping_tp) {
+				if (ping_tp && ping_hw_last_id == data8[0]) {
+					if (len >= 2) {
+						ping_hw_last = data8[1];
+					} else {
+						ping_hw_last = HW_TYPE_VESC;
+					}
 					chEvtSignal(ping_tp, 1 << 29);
 				}
 				break;
@@ -1214,8 +1554,8 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 
 				int8_t buffer[1];
 				buffer[0] = res;
-				comm_can_transmit_eid(data8[0] |
-						((uint32_t)CAN_PACKET_DETECT_APPLY_ALL_FOC_RES << 8), (uint8_t*)buffer, 1);
+				comm_can_transmit_eid_replace(data8[0] |
+						((uint32_t)CAN_PACKET_DETECT_APPLY_ALL_FOC_RES << 8), (uint8_t*)buffer, 1, true);
 			} break;
 
 			case CAN_PACKET_DETECT_APPLY_ALL_FOC_RES: {
@@ -1301,9 +1641,9 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			} break;
 
 			case CAN_PACKET_POLL_TS5700N8501_STATUS: {
-				comm_can_transmit_eid(app_get_configuration()->controller_id |
+				comm_can_transmit_eid_replace(app_get_configuration()->controller_id |
 						((uint32_t)CAN_PACKET_POLL_TS5700N8501_STATUS << 8),
-						encoder_ts5700n8501_get_raw_status(), 8);
+						encoder_ts5700n8501_get_raw_status(), 8, true);
 			} break;
 
 			case CAN_PACKET_CONF_BATTERY_CUT:
@@ -1344,10 +1684,27 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 #endif
 			} break;
 
+			case CAN_PACKET_UPDATE_PID_POS_OFFSET: {
+				ind = 0;
+				float angle_now = buffer_get_float32(data8, 1e4, &ind);
+				bool store = data8[ind++];
+				mc_interface_update_pid_pos_offset(angle_now, store);
+			} break;
+
+			case CAN_PACKET_POLL_ROTOR_POS: {
+				uint8_t buffer[4];
+				int32_t index = 0;
+				buffer_append_int32(buffer, (int32_t)(encoder_read_deg() * 100000.0), &index);
+				comm_can_transmit_eid_replace(app_get_configuration()->controller_id |
+						((uint32_t)CAN_PACKET_POLL_ROTOR_POS << 8), (uint8_t*)buffer, 4, true);
+			} break;
+
 			default:
 				break;
 		}
 	}
+
+	// The packets below are addressed to all devices, mainly containing status information.
 
 	switch (cmd) {
 	case CAN_PACKET_STATUS:
@@ -1423,6 +1780,78 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 		}
 		break;
 
+	case CAN_PACKET_IO_BOARD_ADC_1_TO_4:
+		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+			io_board_adc_values *msg = &io_board_adc_1_4[i];
+			if (msg->id == id || msg->id == -1) {
+				ind = 0;
+				msg->id = id;
+				msg->rx_time = chVTGetSystemTime();
+				ind = 0;
+				int j = 0;
+				while (ind < len) {
+					msg->adc_voltages[j++] = buffer_get_float16(data8, 1e2, &ind);
+				}
+				break;
+			}
+		}
+		break;
+
+	case CAN_PACKET_IO_BOARD_ADC_5_TO_8:
+		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+			io_board_adc_values *msg = &io_board_adc_5_8[i];
+			if (msg->id == id || msg->id == -1) {
+				ind = 0;
+				msg->id = id;
+				msg->rx_time = chVTGetSystemTime();
+				ind = 0;
+				int j = 0;
+				while (ind < len) {
+					msg->adc_voltages[j++] = buffer_get_float16(data8, 1e2, &ind);
+				}
+				break;
+			}
+		}
+		break;
+
+	case CAN_PACKET_IO_BOARD_DIGITAL_IN:
+		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+			io_board_digial_inputs *msg = &io_board_digital_in[i];
+			if (msg->id == id || msg->id == -1) {
+				ind = 0;
+				msg->id = id;
+				msg->rx_time = chVTGetSystemTime();
+				msg->inputs = 0;
+				ind = 0;
+				while (ind < len) {
+					msg->inputs |= (uint64_t)data8[ind] << (ind * 8);
+					ind++;
+				}
+				break;
+			}
+		}
+		break;
+
+	case CAN_PACKET_PSW_STAT: {
+		for (int i = 0;i < CAN_STATUS_MSGS_TO_STORE;i++) {
+			psw_status *msg = &psw_stat[i];
+			if (msg->id == id || msg->id == -1) {
+				ind = 0;
+				msg->id = id;
+				msg->rx_time = chVTGetSystemTime();
+
+				msg->v_in = buffer_get_float16(data8, 10.0, &ind);
+				msg->v_out = buffer_get_float16(data8, 10.0, &ind);
+				msg->temp = buffer_get_float16(data8, 10.0, &ind);
+				msg->is_out_on = (data8[ind] >> 0) & 1;
+				msg->is_pch_on = (data8[ind] >> 1) & 1;
+				msg->is_dsc_on = (data8[ind] >> 2) & 1;
+				ind++;
+				break;
+			}
+		}
+	} break;
+
 	default:
 		break;
 	}
@@ -1432,54 +1861,6 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 #endif
 }
 
-static void send_status1(uint8_t id, bool replace) {
-	int32_t send_index = 0;
-	uint8_t buffer[8];
-	buffer_append_int32(buffer, (int32_t)mc_interface_get_rpm(), &send_index);
-	buffer_append_int16(buffer, (int16_t)(mc_interface_get_tot_current_filtered() * 1e1), &send_index);
-	buffer_append_int16(buffer, (int16_t)(mc_interface_get_duty_cycle_now() * 1e3), &send_index);
-	comm_can_transmit_eid_replace(id | ((uint32_t)CAN_PACKET_STATUS << 8),
-			buffer, send_index, replace);
-}
-
-static void send_status2(uint8_t id, bool replace) {
-	int32_t send_index = 0;
-	uint8_t buffer[8];
-	buffer_append_int32(buffer, (int32_t)(mc_interface_get_amp_hours(false) * 1e4), &send_index);
-	buffer_append_int32(buffer, (int32_t)(mc_interface_get_amp_hours_charged(false) * 1e4), &send_index);
-	comm_can_transmit_eid_replace(id | ((uint32_t)CAN_PACKET_STATUS_2 << 8),
-			buffer, send_index, replace);
-}
-
-static void send_status3(uint8_t id, bool replace) {
-	int32_t send_index = 0;
-	uint8_t buffer[8];
-	buffer_append_int32(buffer, (int32_t)(mc_interface_get_watt_hours(false) * 1e4), &send_index);
-	buffer_append_int32(buffer, (int32_t)(mc_interface_get_watt_hours_charged(false) * 1e4), &send_index);
-	comm_can_transmit_eid_replace(id | ((uint32_t)CAN_PACKET_STATUS_3 << 8),
-			buffer, send_index, replace);
-}
-
-static void send_status4(uint8_t id, bool replace) {
-	int32_t send_index = 0;
-	uint8_t buffer[8];
-	buffer_append_int16(buffer, (int16_t)(mc_interface_temp_fet_filtered() * 1e1), &send_index);
-	buffer_append_int16(buffer, (int16_t)(mc_interface_temp_motor_filtered() * 1e1), &send_index);
-	buffer_append_int16(buffer, (int16_t)(mc_interface_get_tot_current_in_filtered() * 1e1), &send_index);
-	buffer_append_int16(buffer, (int16_t)(mc_interface_get_pid_pos_now() * 50.0), &send_index);
-	comm_can_transmit_eid_replace(id | ((uint32_t)CAN_PACKET_STATUS_4 << 8),
-			buffer, send_index, replace);
-}
-
-static void send_status5(uint8_t id, bool replace) {
-	int32_t send_index = 0;
-	uint8_t buffer[8];
-	buffer_append_int32(buffer, mc_interface_get_tachometer_value(false), &send_index);
-	buffer_append_int16(buffer, (int16_t)(GET_INPUT_VOLTAGE() * 1e1), &send_index);
-	buffer_append_int16(buffer, 0, &send_index); // Reserved for now
-	comm_can_transmit_eid_replace(id | ((uint32_t)CAN_PACKET_STATUS_5 << 8),
-			buffer, send_index, replace);
-}
 #endif
 
 /**
@@ -1508,6 +1889,13 @@ static void set_timing(int brp, int ts1, int ts2) {
 	cancfg.btr = CAN_BTR_SJW(3) | CAN_BTR_TS2(ts2) |
 		CAN_BTR_TS1(ts1) | CAN_BTR_BRP(brp);
 
+#ifdef HW_CAN2_DEV
+	canStop(&CAND1);
+	canStart(&CAND1, &cancfg);
+	canStop(&CAND2);
+	canStart(&CAND2, &cancfg);
+#else
 	canStop(&HW_CAN_DEV);
 	canStart(&HW_CAN_DEV, &cancfg);
+#endif
 }

@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2021 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2020 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -17,15 +17,20 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef SERVO_SIMPLE_H_
-#define SERVO_SIMPLE_H_
+#ifndef BMS_H_
+#define BMS_H_
 
-#include <stdbool.h>
+#include "ch.h"
+#include "hal.h"
+#include "datatypes.h"
 
 // Functions
-void servo_simple_init(void);
-void servo_simple_stop(void);
-bool servo_simple_is_running(void);
-void servo_simple_set_output(float out);
+void bms_init(bms_config *conf);
+bool bms_process_can_frame(uint32_t can_id, uint8_t *data8, int len, bool is_ext);
+void bms_update_limits(float *i_in_min, float *i_in_max,
+		float i_in_min_conf, float i_in_max_conf);
+void bms_process_cmd(unsigned char *data, unsigned int len,
+		void(*reply_func)(unsigned char *data, unsigned int len));
+bms_values *bms_get_values(void);
 
-#endif /* SERVO_SIMPLE_H_ */
+#endif /* BMS_H_ */
