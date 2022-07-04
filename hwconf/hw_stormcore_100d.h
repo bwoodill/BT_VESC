@@ -25,23 +25,29 @@
 
 #ifdef HW_HAS_DUAL_PARALLEL
 #define HW_NAME                 "STORMCORE_100D_PARALLEL"
+#elif defined(HW_VER_IS_100D_V2)
+#define HW_NAME                 "STORMCORE_100D_V2"
+#elif defined(HW_VER_IS_100DX)
+#define HW_NAME                 "STORMCORE_100DX"
+#define INVERTED_SHUNT_POLARITY
+#define HW_DEAD_TIME_NSEC               600.0   // Dead time
 #else
 #define HW_NAME                 "STORMCORE_100D"
 #endif
 
+#ifndef HW_VER_IS_100DX
 #include "drv8323s.h"
-
 // HW properties
 #define HW_HAS_DRV8323S // for idrive do 0x073b for reg 4 (LS) and 0x034b for reg 3 (HS)
+#define DRV8323S_CUSTOM_SETTINGS(); drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN); \
+		drv8323s_write_reg(3,0x3af); \
+		drv8323s_write_reg(4,0x7af);
+#endif
 #define HW_HAS_3_SHUNTS
 
-#define DRV8323S_CUSTOM_SETTINGS(); drv8323s_set_current_amp_gain(CURRENT_AMP_GAIN); \
-                                    drv8323s_write_reg(3,0x3af); \
-                                    drv8323s_write_reg(4,0x7af);
 
 
 
-//#define HW_DEAD_TIME_NSEC               360.0   // Dead time
 
 //Switch Pins
 #define HW_HAS_STORMCORE_SWITCH
@@ -69,19 +75,31 @@
 
 #define SMART_SWITCH_MSECS_PRESSED_OFF		2000
 
+#if  defined(HW_VER_IS_100D_V2) || defined(HW_VER_IS_100DX)
+#define HW_HAS_PHASE_FILTERS
+#define PHASE_FILTER_GPIO               GPIOE
+#define PHASE_FILTER_PIN                4
+#define PHASE_FILTER_GPIO_M2            GPIOE
+#define PHASE_FILTER_PIN_M2             1
+#define PHASE_FILTER_ON()               palSetPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
+#define PHASE_FILTER_OFF()              palClearPad(PHASE_FILTER_GPIO, PHASE_FILTER_PIN)
+#define PHASE_FILTER_ON_M2()            palSetPad(PHASE_FILTER_GPIO_M2, PHASE_FILTER_PIN_M2)
+#define PHASE_FILTER_OFF_M2()           palClearPad(PHASE_FILTER_GPIO_M2, PHASE_FILTER_PIN_M2)
+#endif
+
 
 
 #define HW_SHUTDOWN_HOLD_ON();
 #define HW_SAMPLE_SHUTDOWN()		1
 #define HW_SHUTDOWN_HOLD_OFF()		palClearPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN); \
-									palClearPad(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN);
+		palClearPad(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN);
 
 
 #define DCCAL_ON() //drv8323s_dccal_on()
 #define DCCAL_OFF() //drv8323s_dccal_off()
 
 #define HW_EARLY_INIT()				smart_switch_pin_init(); \
-									smart_switch_thread_start();
+		smart_switch_thread_start();
 
 
 
@@ -95,6 +113,17 @@
 #define HW_UART_P_TX_PIN			9
 #define HW_UART_P_RX_PORT			GPIOA
 #define HW_UART_P_RX_PIN			10
+
+#ifdef HW_VER_IS_100D_V2
+//Pins for Third UART
+#define HW_UART_3_BAUD              115200
+#define HW_UART_3_DEV               SD2
+#define HW_UART_3_GPIO_AF           GPIO_AF_USART2
+#define HW_UART_3_TX_PORT           GPIOD
+#define HW_UART_3_TX_PIN            6
+#define HW_UART_3_RX_PORT           GPIOD
+#define HW_UART_3_RX_PIN            5
+#endif
 
 // SPI for DRV8301
 #define DRV8323S_MOSI_GPIO			GPIOC
@@ -226,16 +255,29 @@
 #ifndef VIN_R2
 #define VIN_R2					2200.0
 #endif
+
+
+#if defined(HW_VER_IS_100D_V2) || defined(HW_VER_IS_100DX)
 #ifndef CURRENT_AMP_GAIN
-#define CURRENT_AMP_GAIN		10.0
+#define CURRENT_AMP_GAIN        20.0
 #endif
 #ifndef CURRENT_SHUNT_RES
-#define CURRENT_SHUNT_RES		0.001
+#define CURRENT_SHUNT_RES       0.0005
+#endif
+#else
+#ifndef CURRENT_AMP_GAIN
+#define CURRENT_AMP_GAIN        10.0
+#endif
+#ifndef CURRENT_SHUNT_RES
+#define CURRENT_SHUNT_RES       0.001
+#endif
 #endif
 
+#define VBATT_R1					360000.0
+#define VBATT_R2					10000.0
 // Input voltage
 #define GET_INPUT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VIN_SENS] * ((VIN_R1 + VIN_R2) / VIN_R2))
-#define GET_BATT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_V_BATT] * ((VIN_R1 + VIN_R2) / VIN_R2))
+#define GET_BATT_VOLTAGE()		((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_V_BATT] * ((VBATT_R1 + VBATT_R2) / VBATT_R2))
 #define GET_VM_SENSE_VOLTAGE()	((V_REG / 4095.0) * (float)ADC_Value[ADC_IND_VM_SENSE] * ((VIN_R1 + VIN_R2) / VIN_R2))
 
 // Voltage on ADC channel
@@ -271,6 +313,7 @@
 
 // ICU Peripheral for servo decoding
 #define HW_ICU_TIMER			TIM9
+#define HW_ICU_TIM_CLK_EN()		RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM9, ENABLE)
 #define HW_ICU_DEV				ICUD9
 #define HW_ICU_CHANNEL			ICU_CHANNEL_1
 #define HW_ICU_GPIO_AF			GPIO_AF_TIM9
@@ -332,10 +375,17 @@
 #define NRF_PIN_MISO            10
 
 // NRF SWD
-#define NRF5x_SWDIO_GPIO		GPIOD
-#define NRF5x_SWDIO_PIN			6
-#define NRF5x_SWCLK_GPIO		GPIOD
-#define NRF5x_SWCLK_PIN			5
+#if defined(HW_VER_IS_100D_V2) || defined(HW_VER_IS_100DX)
+#define NRF5x_SWDIO_GPIO        GPIOD
+#define NRF5x_SWDIO_PIN         9
+#define NRF5x_SWCLK_GPIO        GPIOD
+#define NRF5x_SWCLK_PIN         8
+#else
+#define NRF5x_SWDIO_GPIO        GPIOD
+#define NRF5x_SWDIO_PIN         6
+#define NRF5x_SWCLK_GPIO        GPIOD
+#define NRF5x_SWCLK_PIN         5
+#endif
 
 #ifndef MCCONF_DEFAULT_MOTOR_TYPE
 #define MCCONF_DEFAULT_MOTOR_TYPE	MOTOR_TYPE_FOC
@@ -352,6 +402,12 @@
 #define HW_SPI_PIN_MOSI			5
 #define HW_SPI_PORT_MISO		GPIOA
 #define HW_SPI_PIN_MISO			6
+
+// LSM6DS3
+#define LSM6DS3_SDA_GPIO		GPIOB
+#define LSM6DS3_SDA_PIN			9
+#define LSM6DS3_SCL_GPIO		GPIOB
+#define LSM6DS3_SCL_PIN			8
 
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
@@ -384,6 +440,9 @@
 #ifndef MCCONF_M_DRV8301_OC_ADJ
 #define MCCONF_M_DRV8301_OC_ADJ		14
 #endif
+#ifndef MCCONF_L_DUTY_START
+#define MCCONF_L_DUTY_START			0.9 // Start limiting current at this duty cycle
+#endif
 // Setting limits
 #ifdef HW_HAS_DUAL_PARALLEL
 #define HW_LIM_CURRENT				-300.0, 300.0
@@ -398,7 +457,7 @@
 #define MCCONF_L_MAX_ABS_CURRENT	200.0	// The maximum absolute current above which a fault is generated
 #endif
 #endif
-#define HW_LIM_CURRENT_IN			-150.0, 150.0
+#define HW_LIM_CURRENT_IN			-100.0, 100.0
 #define HW_LIM_VIN					6.0, 94.0
 #define HW_LIM_ERPM					-200e3, 200e3
 #define HW_LIM_DUTY_MIN				0.0, 0.1

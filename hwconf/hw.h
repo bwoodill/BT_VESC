@@ -20,10 +20,21 @@
 #ifndef HW_H_
 #define HW_H_
 
-#include "conf_general.h"
 #include "stm32f4xx_conf.h"
-
 #include HW_HEADER
+
+#ifdef HW_HAS_DRV8301
+#include "drv8301.h"
+#endif
+#ifdef HW_HAS_DRV8305
+#include "drv8305.h"
+#endif
+#ifdef HW_HAS_DRV8320S
+#include "drv8320s.h"
+#endif
+#ifdef HW_HAS_DRV8323S
+#include "drv8323s.h"
+#endif
 
 #ifndef HW_NAME
 #error "No hardware name set"
@@ -227,12 +238,25 @@
 #ifndef PHASE_FILTER_OFF
 #define PHASE_FILTER_OFF()
 #endif
+#ifndef PHASE_FILTER_ON_M2
+#define PHASE_FILTER_ON_M2()
+#endif
+#ifndef PHASE_FILTER_OFF_M2
+#define PHASE_FILTER_OFF_M2()
+#endif
 
 #ifndef CURRENT_FILTER_ON
 #define CURRENT_FILTER_ON()
 #endif
 #ifndef CURRENT_FILTER_OFF
 #define CURRENT_FILTER_OFF()
+#endif
+
+#ifndef SENSOR_PORT_5V
+#define SENSOR_PORT_5V()
+#endif
+#ifndef SENSOR_PORT_3V3
+#define SENSOR_PORT_3V3()
 #endif
 
 // VCC net voltage
@@ -278,7 +302,11 @@
 #ifdef INVERTED_SHUNT_POLARITY
 #define GET_CURRENT3()		(4095 - ADC_Value[ADC_IND_CURR3])
 #else
+#ifdef ADC_IND_CURR3
 #define GET_CURRENT3()		ADC_Value[ADC_IND_CURR3]
+#else
+#define GET_CURRENT3()		0
+#endif
 #endif
 #endif
 
@@ -300,7 +328,11 @@
 #ifdef INVERTED_SHUNT_POLARITY
 #define GET_CURRENT3_M2()	(4095 - ADC_Value[ADC_IND_CURR6])
 #else
+#ifdef ADC_IND_CURR6
 #define GET_CURRENT3_M2()	ADC_Value[ADC_IND_CURR6]
+#else
+#define GET_CURRENT3_M2()			0
+#endif
 #endif
 #endif
 
@@ -320,6 +352,14 @@
 #endif
 #ifndef ADC_IND_EXT2
 #define ADC_IND_EXT2 			ADC_IND_EXT
+#endif
+
+// Adc voltage scaling on phases and input
+#ifndef ADC_VOLTS_PH_FACTOR
+#define ADC_VOLTS_PH_FACTOR		1.0
+#endif
+#ifndef ADC_VOLTS_INPUT_FACTOR
+#define ADC_VOLTS_INPUT_FACTOR	1.0
 #endif
 
 // NRF SW SPI (default to spi header pins)
@@ -405,10 +445,20 @@
 #ifndef PTC_TEMP_MOTOR
 #if defined(NTC_RES_MOTOR) && defined(ADC_IND_TEMP_MOTOR)
 #define PTC_TEMP_MOTOR(res, con, tbase)			(((NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) - res) / res) * 100 / con + tbase)
-#define PTC_TEMP_MOTOR_2(res, con, tbase)			(((NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR_2]) - res) / res) * 100 / con + tbase)
+#define PTC_TEMP_MOTOR_2(res, con, tbase)		(((NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR_2]) - res) / res) * 100 / con + tbase)
 #else
 #define PTC_TEMP_MOTOR(res, con, tbase)			0.0
-#define PTC_TEMP_MOTOR_2(res, con, tbase)			0.0
+#define PTC_TEMP_MOTOR_2(res, con, tbase)		0.0
+#endif
+#endif
+
+#ifndef NTC100K_TEMP_MOTOR
+#if defined(NTC_RES_MOTOR) && defined(ADC_IND_TEMP_MOTOR)
+#define NTC100K_TEMP_MOTOR(beta)		(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR]) / 100000.0) / beta) + (1.0 / 298.15)) - 273.15)
+#define NTC100K_TEMP_MOTOR_2(beta)		(1.0 / ((logf(NTC_RES_MOTOR(ADC_Value[ADC_IND_TEMP_MOTOR_2]) / 100000.0) / beta) + (1.0 / 298.15)) - 273.15)
+#else
+#define NTC100K_TEMP_MOTOR(beta)		0.0
+#define NTC100K_TEMP_MOTOR2(beta)		0.0
 #endif
 #endif
 
@@ -453,6 +503,35 @@
 #endif
 #endif
 
+#ifndef HW_PAS1_PORT
+#define HW_PAS1_PORT			HW_UART_RX_PORT
+#define HW_PAS1_PIN				HW_UART_RX_PIN
+#define HW_PAS2_PORT			HW_UART_TX_PORT
+#define HW_PAS2_PIN				HW_UART_TX_PIN
+#endif
+
+#ifndef HW_ICU_TIMER
+#ifdef HW_USE_SERVO_TIM4
+#define HW_ICU_TIMER			TIM4
+#define HW_ICU_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE)
+#else
+#define HW_ICU_TIMER			TIM3
+#define HW_ICU_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE)
+#endif
+#endif
+
+#ifndef HW_RESET_DRV_FAULTS
+#define HW_RESET_DRV_FAULTS()
+#endif
+
+// For backwards-compatibility with configs that use the old name
+#ifdef MCCONF_FOC_F_SW
+#ifndef MCCONF_FOC_F_ZV
+#define MCCONF_FOC_F_ZV			MCCONF_FOC_F_SW
+#warning Please replace `MCCONF_FOC_F_SW` by `MCCONF_FOC_F_ZV`. `MCCONF_FOC_F_SW` is deprecated.
+#endif
+#endif
+
 // Functions
 void hw_init_gpio(void);
 void hw_setup_adc_channels(void);
@@ -460,5 +539,6 @@ void hw_start_i2c(void);
 void hw_stop_i2c(void);
 void hw_try_restore_i2c(void);
 uint8_t hw_id_from_uuid(void);
+uint8_t hw_id_from_pins(void);
 
 #endif /* HW_H_ */

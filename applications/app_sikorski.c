@@ -139,7 +139,7 @@ void check_batteries (void)
     { // LOCKED CONTEXT
         if(settings->b2Rratio == 0)
         {
-            batteries[1] = batteries[0] = batt_total/2.0;
+            batteries[1] = batteries[0] = (batt_total/2.0) / (float) BATTERY_CHECK_COUNTS;
         }
         else
         {
