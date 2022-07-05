@@ -17,13 +17,13 @@
 #define MCCONF_SENSOR_MODE 0
 
 // Motor Current Max
-#define MCCONF_L_CURRENT_MAX 40
+#define MCCONF_L_CURRENT_MAX 49
 
 // Motor Current Max Brake
 #define MCCONF_L_CURRENT_MIN -40
 
 // Battery Current Max
-#define MCCONF_L_IN_CURRENT_MAX 23
+#define MCCONF_L_IN_CURRENT_MAX 28
 
 // Battery Current Max Regen
 #define MCCONF_L_IN_CURRENT_MIN -23
