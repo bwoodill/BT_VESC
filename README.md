@@ -2,7 +2,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-**Warning** If your scooter's serial number is HIGHER than "001-2700", this firmware is not compatible.
+**Warning** If your scooter's serial number is LOWER than "001-2700", this firmware is not compatible. This firmware is configured for the latest motor and damage may result in using it with the older models.
 
 An open source motor controller firmware for the Blacktip DPV with additional added features.
 
