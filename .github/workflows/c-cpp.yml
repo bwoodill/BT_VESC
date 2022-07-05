@@ -2,9 +2,13 @@ name: C/C++ CI
 
 on:
   push:
-    branches: [ master ]
+    branches:
+     - master
+     - v2.3-New-HW
   pull_request:
-    branches: [ master ]
+    branches:
+     - master
+     - v2.3-New-HW
 
 jobs:
   build:
