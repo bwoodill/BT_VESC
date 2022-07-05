@@ -71,8 +71,8 @@
 
 // Mark3 version of HW60 with power switch and separate NRF UART.
 //#define HW60_IS_MK3
-//#define HW60_IS_MK4
-#define HW60_IS_MK5
+#define HW60_IS_MK4
+//#define HW60_IS_MK5
 
 //#define HW_SOURCE "hw_60.c"
 //#define HW_HEADER "hw_60.h"
@@ -250,7 +250,7 @@
 //#define APPCONF_CAN_BAUD_RATE		CAN_BAUD_75K
 
 // SIKORSKI
-#include "mcconf_Sikorski.h"
+#include "mcconf_412_Sikorski.h"
 #include "appconf_sikorski.h"
 // SIKORSKI
 
