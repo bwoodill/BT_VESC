@@ -182,13 +182,12 @@ typedef enum _run_modes
 // to the battery voltage in the case where the display shows 1 bar.
 static float limit_speed_by_battery(float speed)
 {
+	
+	float lowest_battery = get_lowest_battery_voltage();
+	
 	if (settings->num_battery = 1)//Num_battery
 	{
 		float lowest_battery = GET_INPUT_VOLTAGE() / 2;
-	}
-	else
-	{
-		float lowest_battery = get_lowest_battery_voltage();
 	}
 	
     mc_configuration *conf = (mc_configuration*) mc_interface_get_configuration ();
