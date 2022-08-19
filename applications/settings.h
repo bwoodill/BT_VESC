@@ -66,6 +66,7 @@ X (uint8_t,  jump,		    $J, %i,    JUMP) \
 X (uint8_t,  jump_speed,    $K, %i,    JUMP_SPEED) \
 X (uint8_t,  low_migrate,   $e, %i,    LOW_MIGRATE) \
 X (uint8_t,  reverse,  		$E, %i,    REVERSE) \
+X (uint8_t,  num_battery,  	$O, %i,    NUM_BATTERY) \
 
 typedef struct
 {

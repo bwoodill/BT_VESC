@@ -102,12 +102,18 @@ float get_battery_imbalance(void)
 {
     float batt_imbalance;
 
-    chMtxLock(&batt_mutex);
-    { // LOCKED CONTEXT
-        batt_imbalance = batteries[1] - batteries[0];
-    }
-    chMtxUnlock(&batt_mutex);
-
+	if(settings->num_battery = 1)
+	{
+		batt_imbalance = 0;
+	}
+	else
+	{
+		chMtxLock(&batt_mutex);
+		{ // LOCKED CONTEXT
+			batt_imbalance = batteries[1] - batteries[0];
+		}
+		chMtxUnlock(&batt_mutex);
+	}
     // return the smallest value
     return batt_imbalance;
 }

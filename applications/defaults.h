@@ -106,4 +106,7 @@
 // REVERSE
 #define REVERSE 0		//my default 1
 
+// NUM_BATTERY
+#define NUM_BATTERY 2		//my default 1
+
 #endif /* APPLICATIONS_DIVEX_DEFAULTS_H_ */

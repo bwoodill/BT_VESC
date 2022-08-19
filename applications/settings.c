@@ -689,6 +689,24 @@ bool reverse (const char *data) // Reverse mode
     return true;
 }
 
+bool num_battery (const char *data) // Set Number of Batteries
+{
+    int i;
+    int num = sscanf (data, "%i", &i);
+    if (num != 1)
+    {
+        commands_printf ("invalid input.\n");
+        return false;
+    }
+    if (i < 1 || i > 2)
+    {
+        commands_printf ("out of range. (1-2)\n");
+        return false;
+    }
+    settings->num_battery = i;
+    return true;
+}
+
 bool set_speeds (int index, const char *data) // Increased limit from 5000 to 6000
 {
     int i;

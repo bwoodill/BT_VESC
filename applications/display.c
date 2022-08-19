@@ -86,7 +86,14 @@ void display_battery_graph (bool initial)
     }
     else
     {
-        // Choose the bar graph symbol to show based on battery voltage
+        //Num_battery
+		if (settings->num_battery = 1)
+		{
+			pack_level = GET_INPUT_VOLTAGE();
+		}
+		else
+		
+		// Choose the bar graph symbol to show based on battery voltage
         // base on lowest battery, but settings are for 2 batteries
         pack_level = get_lowest_battery_voltage() * 2.0;
     }
@@ -116,37 +123,40 @@ void display_battery_graph (bool initial)
 
     LED_blinkRate (0);
 
-    // When there is an imbalance in the battery charge between two batteries,
-    // indicate to the user which one is low (defective).
+	if (settings->num_battery = 2) //Num_Battery
+	{
+		// When there is an imbalance in the battery charge between two batteries,
+		// indicate to the user which one is low (defective).
 
-    /*  0 1 2 3 4 5 6 7  X        0 1 2 3 4 5 6 7  X
-     0  - X - - - - : :        0  X X - - - - - -
-     1  X X - - - - : :        1  - X - - - - - -
-     2  - X - - : : : :        2  X - - - - - - -
-     3  - X - - : : : :        3  X X - - - - - -
-     4  - - : : : : : :        4  - - - - - - - -
-     5  - - : : : : : :        5  - - - - - - - -
-     6  : : : : : : : :        6  - - - - - - - -
-     7  : : : : : : : :        7  - - - - - - - -
-     Y        1                Y         2
-    */
+		/*  0 1 2 3 4 5 6 7  X        0 1 2 3 4 5 6 7  X
+		 0  - X - - - - : :        0  X X - - - - - -
+		 1  X X - - - - : :        1  - X - - - - - -
+		 2  - X - - : : : :        2  X - - - - - - -
+		 3  - X - - : : : :        3  X X - - - - - -
+		 4  - - : : : : : :        4  - - - - - - - -
+		 5  - - : : : : : :        5  - - - - - - - -
+		 6  : : : : : : : :        6  - - - - - - - -
+		 7  : : : : : : : :        7  - - - - - - - -
+		 Y        1                Y         2
+		*/
 
-    float imbalance = get_battery_imbalance();
+		float imbalance = get_battery_imbalance();
+	
+		if (imbalance > settings->batt_imbalance) // display a small '1'
+		{
+			GFX_drawBlk  (1, 0, 1, 4);
+			LED_drawPixel(0, 1, LED_ON);
+			DISP_LOG(("Displaying '1'"));
+		}
 
-    if (imbalance > settings->batt_imbalance) // display a small '1'
-    {
-        GFX_drawBlk  (1, 0, 1, 4);
-        LED_drawPixel(0, 1, LED_ON);
-        DISP_LOG(("Displaying '1'"));
-    }
-
-    if (imbalance < ( - settings->batt_imbalance)) // display a small '2'
-    {
-        GFX_drawBlk  (0, 0, 2, 4);
-        LED_drawPixel(0, 1, LED_OFF);
-        LED_drawPixel(1, 2, LED_OFF);
-        DISP_LOG(("Displaying '2'"));
-    }
+		if (imbalance < ( - settings->batt_imbalance)) // display a small '2'
+		{
+			GFX_drawBlk  (0, 0, 2, 4);
+			LED_drawPixel(0, 1, LED_OFF);
+			LED_drawPixel(1, 2, LED_OFF);
+			DISP_LOG(("Displaying '2'"));
+		}
+	}
 
     LED_writeDisplay ();
 }
