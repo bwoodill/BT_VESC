@@ -5,10 +5,14 @@ on:
     branches:
      - master
      - v2.3-New-HW
+     - v2.3_GEORGE_0.4
+     - v2.3_FRED_1.19
   pull_request:
     branches:
      - master
      - v2.3-New-HW
+     - v2.3_GEORGE_0.4
+     - v2.3_FRED_1.19
 
 jobs:
   build:
