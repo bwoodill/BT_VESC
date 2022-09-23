@@ -18,13 +18,11 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-	
-	Additional Copyright 2021 Benjamin Woodill bwoodill@gmail.com
 */
 
 #ifndef APPLICATIONS_VERSION_H_
 #define APPLICATIONS_VERSION_H_
 
-#define APP_VERSION "BT_VESC VERSION 2.3"
+#define APP_VERSION "BT_VESC VERSION 2.3 GEORGE 0.4"
 
 #endif /* APPLICATIONS_VERSION_H_ */
