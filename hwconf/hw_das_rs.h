@@ -201,16 +201,6 @@
 #define HW_SPI_PORT_MISO		GPIOA
 #define HW_SPI_PIN_MISO			6
 
-//BMI160 SPI pins
-#define BMI160_SPI_PORT_NSS		GPIOC
-#define BMI160_SPI_PIN_NSS		9
-#define BMI160_SPI_PORT_SCK		GPIOC
-#define BMI160_SPI_PIN_SCK		10
-#define BMI160_SPI_PORT_MOSI	GPIOC
-#define BMI160_SPI_PIN_MOSI		12
-#define BMI160_SPI_PORT_MISO	GPIOC
-#define BMI160_SPI_PIN_MISO		11								
-
 // Measurement macros
 #define ADC_V_L1				ADC_Value[ADC_IND_SENS1]
 #define ADC_V_L2				ADC_Value[ADC_IND_SENS2]
@@ -254,8 +244,8 @@
 #ifndef MCCONF_FOC_CURRENT_KI
 #define MCCONF_FOC_CURRENT_KI				5800.0
 #endif
-#ifndef MCCONF_FOC_F_ZV
-#define MCCONF_FOC_F_ZV						20000.0
+#ifndef MCCONF_FOC_F_SW
+#define MCCONF_FOC_F_SW						20000.0
 #endif
 #ifndef MCCONF_FOC_MOTOR_L
 #define MCCONF_FOC_MOTOR_L					0.0048

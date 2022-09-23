@@ -323,8 +323,6 @@ float utils_fast_atan2(float y, float x) {
 		angle = ((0.1963 * rsq) - 0.9817) * r + (3.0 * M_PI / 4.0);
 	}
 
-	UTILS_NAN_ZERO(angle);
-
 	if (y < 0) {
 		return(-angle);
 	} else {
@@ -762,40 +760,36 @@ uint8_t utils_second_motor_id(void) {
 #endif
 }
 
-/**
- * Read hall sensors
- *
- * @param is_second_motor
- * Use hall sensor port for second motor on dual motor hardware.
- *
- * @param samples
- * The number of extra samples to read and filter over. If this
- * is 0, only one sample will be used.
- *
- * @return
- * The state of the three hall sensors.
- */
-int utils_read_hall(bool is_second_motor, int samples) {
-	samples = 1 + 2 * samples;
-
-	int h1 = 0, h2 = 0, h3 = 0;
-	int tres = samples / 2;
+int utils_read_hall(bool is_second_motor) {
+	int h1, h2, h3;
 
 	if (is_second_motor) {
-		while (samples--) {
-			h1 += READ_HALL1_2();
-			h2 += READ_HALL2_2();
-			h3 += READ_HALL3_2();
-		}
+		h1 = READ_HALL1_2();
+		h2 = READ_HALL2_2();
+		h3 = READ_HALL3_2();
+
+		h1 += READ_HALL1_2();
+		h2 += READ_HALL2_2();
+		h3 += READ_HALL3_2();
+
+		h1 += READ_HALL1_2();
+		h2 += READ_HALL2_2();
+		h3 += READ_HALL3_2();
 	} else {
-		while (samples--) {
-			h1 += READ_HALL1();
-			h2 += READ_HALL2();
-			h3 += READ_HALL3();
-		}
+		h1 = READ_HALL1();
+		h2 = READ_HALL2();
+		h3 = READ_HALL3();
+
+		h1 += READ_HALL1();
+		h2 += READ_HALL2();
+		h3 += READ_HALL3();
+
+		h1 += READ_HALL1();
+		h2 += READ_HALL2();
+		h3 += READ_HALL3();
 	}
 
-	return (h1 > tres) | ((h2 > tres) << 1) | ((h3 > tres) << 2);
+	return (h1 > 1) | ((h2 > 1) << 1) | ((h3 > 1) << 2);
 }
 
 // A mapping of a samsung 30q cell for % remaining capacity vs. voltage from
@@ -826,15 +820,6 @@ uint16_t utils_median_filter_uint16_run(uint16_t *buffer,
 	memcpy(buffer_sorted, buffer, sizeof(uint16_t) * filter_len);
 	qsort(buffer_sorted, filter_len, sizeof(uint16_t), uint16_cmp_func);
 	return buffer_sorted[filter_len / 2];
-}
-
-const char* utils_hw_type_to_string(HW_TYPE hw) {
-	switch (hw) {
-	case HW_TYPE_VESC: return "HW_TYPE_VESC"; break;
-	case HW_TYPE_VESC_BMS: return "HW_TYPE_VESC_BMS"; break;
-	case HW_TYPE_CUSTOM_MODULE: return "HW_TYPE_CUSTOM_MODULE"; break;
-	default: return "FAULT_HARDWARE"; break;
-	}
 }
 
 const float utils_tab_sin_32_1[] = {

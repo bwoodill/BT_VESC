@@ -20,7 +20,7 @@
 #ifndef LEDPWM_H_
 #define LEDPWM_H_
 
-#include "conf_general.h"
+#include "hw.h"
 
 #ifdef LED_PWM4_ON
 #define HW_LEDPWM_CH		4

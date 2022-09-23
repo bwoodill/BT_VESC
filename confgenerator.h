@@ -8,8 +8,8 @@
 #include <stdbool.h>
 
 // Constants
-#define MCCONF_SIGNATURE		2525666056
-#define APPCONF_SIGNATURE		3733512279
+#define MCCONF_SIGNATURE		3698540221
+#define APPCONF_SIGNATURE		2460147246
 
 // Functions
 int32_t confgenerator_serialize_mcconf(uint8_t *buffer, const mc_configuration *conf);
@@ -18,10 +18,8 @@ int32_t confgenerator_serialize_appconf(uint8_t *buffer, const app_configuration
 bool confgenerator_deserialize_mcconf(const uint8_t *buffer, mc_configuration *conf);
 bool confgenerator_deserialize_appconf(const uint8_t *buffer, app_configuration *conf);
 
-// SIKORSKI
 void disallow_changing_most_mconf_settings(mc_configuration *conf);
 void confgenerator_set_defaults_mcconf(mc_configuration *conf, bool all);
-// SIKORSKI
 void confgenerator_set_defaults_appconf(app_configuration *conf);
 
 // CONFGENERATOR_H_

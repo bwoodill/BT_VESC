@@ -45,11 +45,18 @@
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
 		</cconfiguration>
 	</storageModule>
+	<storageModule moduleId="scannerConfiguration">
+		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.toolchain.gnu.cross.base.1627184854;cdt.managedbuild.toolchain.gnu.cross.base.1627184854.1588382342;cdt.managedbuild.tool.gnu.cross.c.compiler.797841390;cdt.managedbuild.tool.gnu.c.compiler.input.895586027">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.toolchain.gnu.cross.base.1627184854;cdt.managedbuild.toolchain.gnu.cross.base.1627184854.1588382342;cdt.managedbuild.tool.gnu.cross.cpp.compiler.540835519;cdt.managedbuild.tool.gnu.cpp.compiler.input.836175195">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+	</storageModule>
 	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
 		<project id="claroworks-dpv.null.384732867" name="claroworks-dpv"/>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
-	<storageModule moduleId="refreshScope"/>
-	<storageModule moduleId="scannerConfiguration"/>
 </cproject>

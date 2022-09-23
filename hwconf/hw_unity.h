@@ -17,18 +17,9 @@
 #ifndef HW_UNITY_H_
 #define HW_UNITY_H_
 
-#ifdef HW_DUAL_CONFIG_PARALLEL
-#define HW_HAS_DUAL_PARALLEL
-#else
+#define HW_NAME									"UNITY"
+
 #define HW_HAS_DUAL_MOTORS
-#endif
-
-#ifdef HW_HAS_DUAL_PARALLEL
-#define HW_NAME                 "UNITY_PARALLEL"
-#else
-#define HW_NAME                 "UNITY"
-#endif
-
 #define HW_HAS_DRV8301
 //#define HW_HAS_3_SHUNTS
 //#define HW_HAS_PHASE_SHUNTS
@@ -54,7 +45,7 @@
 
 #define SMART_SWITCH_MSECS_PRESSED_OFF			2000
 
-#define HW_EARLY_INIT()							smart_switch_pin_init(); LED_PWM1_ON(); smart_switch_thread_start();
+#define HW_EARLY_INIT()							smart_switch_pin_init(); smart_switch_thread_start();
 
 // Pins for BLE UART
 #define HW_UART_P_BAUD							250000
@@ -199,7 +190,6 @@
 
 // ICU Peripheral for servo decoding
 #define HW_ICU_TIMER			TIM9
-#define HW_ICU_TIM_CLK_EN()		RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM9, ENABLE)
 #define HW_ICU_DEV				ICUD9
 #define HW_ICU_CHANNEL			ICU_CHANNEL_1
 #define HW_ICU_GPIO_AF			GPIO_AF_TIM9
@@ -276,12 +266,6 @@
 #define HW_SPI_PORT_MISO		GPIOA
 #define HW_SPI_PIN_MISO			6
 
-// LSM6DS3
-#define LSM6DS3_SDA_GPIO		GPIOC
-#define LSM6DS3_SDA_PIN			9
-#define LSM6DS3_SCL_GPIO		GPIOA
-#define LSM6DS3_SCL_PIN			8
-
 // CAN-bus
 #define HW_CANRX_PORT			GPIOD
 #define HW_CANRX_PIN			0
@@ -315,22 +299,9 @@
 #endif
 
 // Setting limits
-#ifdef HW_HAS_DUAL_PARALLEL
-#define HW_LIM_CURRENT				-300.0, 300.0
-#define HW_LIM_CURRENT_ABS			800.0, 804.0
-#define HW_LIM_CURRENT_IN		-200.0, 200.0
-#ifndef MCCONF_L_MAX_ABS_CURRENT
-#define MCCONF_L_MAX_ABS_CURRENT	400.0	// The maximum absolute current above which a fault is generated
-#endif
-#else
-#define HW_LIM_CURRENT				-150.0, 150.0
+#define HW_LIM_CURRENT			-150.0, 150.0
+#define HW_LIM_CURRENT_IN		-120.0, 120.0
 #define HW_LIM_CURRENT_ABS		400.0, 402.0
-#define HW_LIM_CURRENT_IN		-100.0, 100.0
-#ifndef MCCONF_L_MAX_ABS_CURRENT
-#define MCCONF_L_MAX_ABS_CURRENT	200.0	// The maximum absolute current above which a fault is generated
-#endif
-#endif
-
 #define HW_LIM_VIN				6.0, 59.0
 #define HW_LIM_ERPM				-200e3, 200e3
 #define HW_LIM_DUTY_MIN			0.0, 0.1

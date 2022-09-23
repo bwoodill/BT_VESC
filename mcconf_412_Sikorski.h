@@ -67,13 +67,13 @@
 #define MCCONF_L_LIM_TEMP_FET_END 100
 
 // Motor Temp Cutoff Start
-#define MCCONF_L_LIM_TEMP_MOTOR_START 85
+#define MCCONF_L_LIM_TEMP_MOTOR_START 160
 
 // Motor Temp Cutoff End
-#define MCCONF_L_LIM_TEMP_MOTOR_END 100
+#define MCCONF_L_LIM_TEMP_MOTOR_END 180
 
 // Acceleration Temperature Decrease
-#define MCCONF_L_LIM_TEMP_ACCEL_DEC 0.15
+#define MCCONF_L_LIM_TEMP_ACCEL_DEC 0.00
 
 // Minimum Duty Cycle
 #define MCCONF_L_MIN_DUTY 0.001
@@ -388,7 +388,7 @@
 #define MCCONF_M_DC_F_SW 25000
 
 // Beta Value for Motor Thermistor
-#define MCCONF_M_NTC_MOTOR_BETA 3977
+#define MCCONF_M_NTC_MOTOR_BETA 3950
 
 // Auxiliary Output Mode
 #define MCCONF_M_OUT_AUX_MODE 0

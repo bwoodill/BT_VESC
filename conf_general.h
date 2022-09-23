@@ -1,5 +1,5 @@
 /*
-	Copyright 2017 - 2021 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2017 - 2019 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -22,7 +22,7 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR			5
-#define FW_VERSION_MINOR			03
+#define FW_VERSION_MINOR			01
 // Set to 0 for building a release and iterate during beta test builds
 #define FW_TEST_VERSION_NUMBER		0
 
@@ -66,13 +66,12 @@
 #define HW_SOURCE "hw_410.c" // Also for 4.11 and 4.12
 #define HW_HEADER "hw_410.h" // Also for 4.11 and 4.12
 
-//#define HW_SOURCE "hw_gesc.c"
-//#define HW_HEADER "hw_gesc.h"
+// Benjamins first HW60 PCB with PB5 and PB6 swapped
+//#define HW60_VEDDER_FIRST_PCB
 
 // Mark3 version of HW60 with power switch and separate NRF UART.
 //#define HW60_IS_MK3
-//#define HW60_IS_MK4
-#define HW60_IS_MK5
+#define HW60_IS_MK4
 
 //#define HW_SOURCE "hw_60.c"
 //#define HW_HEADER "hw_60.h"
@@ -89,8 +88,8 @@
 //#define HW_SOURCE "hw_axiom.c"
 //#define HW_HEADER "hw_axiom.h"
 
-//#define HW_SOURCE "luna/hw_luna_bbshd.c"
-//#define HW_HEADER "luna/hw_luna_bbshd.h"
+//#define HW_SOURCE "hw_luna_bbshd.c"
+//#define HW_HEADER "hw_luna_bbshd.h"
 
 //#define HW_SOURCE "hw_rh.c"
 //#define HW_HEADER "hw_rh.h"
@@ -103,7 +102,7 @@
 
 // Second revision with separate UART for NRF51
 //#define HW75_300_REV_2
-#define HW75_300_REV_3
+//#define HW75_300_REV_3
 
 //#define HW_SOURCE "hw_75_300.c"
 //#define HW_HEADER "hw_75_300.h"
@@ -120,16 +119,11 @@
 //#define HW_SOURCE "hw_uavc_omega.c"
 //#define HW_HEADER "hw_uavc_omega.h"
 
-//#define HW_SOURCE "hw_hd60.c"
-//#define HW_HEADER "hw_hd60.h"
+//#define HW_SOURCE "hw_binar_v1.c"
+//#define HW_HEADER "hw_binar_v1.h"
 
-//#define HW_SOURCE "hw_hd75.c"
-//#define HW_HEADER "hw_hd75.h"
-
-//#define HW_A50S_6S
-//#define HW_A50S_12S
-//#define HW_SOURCE "hw_a50s.c"
-//#define HW_HEADER "hw_a50s.h"
+//#define HW_SOURCE "hw_hd.c"
+//#define HW_HEADER "hw_hd.h"
 
 //#define HW_SOURCE "hw_a200s_v2.c"
 //#define HW_HEADER "hw_a200s_v2.h"
@@ -143,49 +137,15 @@
 //#define HW_SOURCE "hw_unity.c"
 //#define HW_HEADER "hw_unity.h"
 
-//#define HW_SOURCE "hw_uxv_sr.c"
-//#define HW_HEADER "hw_uxv_sr.h"
-
 //#define HW_DUAL_CONFIG_PARALLEL
-//#define HW_VER_IS_100D_V2
-//#define HW_VER_IS_100DX
 //#define HW_SOURCE "hw_stormcore_100d.c"
 //#define HW_HEADER "hw_stormcore_100d.h"
 
-//#define HW_VER_IS_60D_PLUS
-//#define HW_VER_IS_60D_XS
 //#define HW_SOURCE "hw_stormcore_60d.c"
 //#define HW_HEADER "hw_stormcore_60d.h"
-
+//
 //#define HW_SOURCE "hw_stormcore_100s.c"
 //#define HW_HEADER "hw_stormcore_100s.h"
-
-//#define HW_SOURCE "hw_Cheap_FOCer_2.c"
-//#define HW_HEADER "hw_Cheap_FOCer_2.h"
-
-//#define HW_SOURCE "hw_140_300.c"
-//#define HW_HEADER "hw_140_300.h"
-
-//#define HW_SOURCE "hw_es19.c"
-//#define HW_HEADER "hw_es19.h"
-
-//#define HW_SOURCE "hw_Little_FOCer.c"
-//#define HW_HEADER "hw_Little_FOCer.h"
-
-//#define HW_SOURCE "hw_100_500.c"
-//#define HW_HEADER "hw_100_500.h"
-
-//#define HW_SOURCE "hw_warrior6.c"
-//#define HW_HEADER "hw_warrior6.h"
-
-//#define HW_SOURCE "hw_raiden7.c"
-//#define HW_HEADER "hw_raiden7.h"
-
-//#define HW_SOURCE "hw_ubox_single.c"
-//#define HW_HEADER "hw_ubox_single.h"
-
-//#define HW_SOURCE "hw_60v2_alva.c"
-//#define HW_HEADER "hw_60v2_alva.h"
 #endif
 
 #ifndef HW_SOURCE
@@ -204,57 +164,32 @@
 #include USER_APP_CONF
 #endif
 
-// This is how to provide a custom UI in VESC Tool. The UI can be created and tested in the
-// scripting page, then the source files can be exported. The defines below use the exported
-// files to provide the custom UI when VESC Tool connects.
-//
-// The intention if the HW gui is to be part of the HW-file and the app gui is for custom apps.
-// Both can be used at the same time.
-//
-// Defining QMLUI_HW_FULLSCREEN and/or QMLUI_APP_FULLSCREEN will disable the other pages in the
-// mobile version of VESC Tool.
-//
-//#define QMLUI_SOURCE_HW		"qmlui/hw/qmlui_example_hw.c"
-//#define QMLUI_HEADER_HW		"qmlui/hw/qmlui_example_hw.h"
-//#define QMLUI_HW_FULLSCREEN
-//
-//#define QMLUI_SOURCE_APP	"qmlui/app/qmlui_example_app.c"
-//#define QMLUI_HEADER_APP	"qmlui/app/qmlui_example_app.h"
-//#define QMLUI_APP_FULLSCREEN
-
 /*
  * Select default user motor configuration
  */
-//#include			"mcconf_default.h"
-//#include 			"mcconf_china_60kv.h"
+//#include			"mcconf_sten.h"
+//#include			"mcconf_sp_540kv.h"
+//#include			"mcconf_castle_2028.h"
+//#include			"mcconf_ellwee.h"
+//#include			"conf_test.h"
 
 /*
  * Select default user app configuration
  */
 //#include			"appconf_example_ppm.h"
 //#include			"appconf_custom.h"
+//#include			"appconf_ellwee.h"
 
 /*
  * Set APP_CUSTOM_TO_USE to the name of the main C file of the custom application.
  */
 //#define APP_CUSTOM_TO_USE			"app_custom_template.c"
 //#define APP_CUSTOM_TO_USE			"app_motor_heater.c"
-//#include "er/app_erockit_conf_v2.h"
-//#include "finn/app_finn_az_conf.h"
-//#include "vccu/app_vccu_conf.h"
-//#include "pitch/app_pitch_conf.h"
-
-// CAN-plotter
-//#define APP_CUSTOM_TO_USE			"app_plot_can.c"
-//#define APPCONF_APP_TO_USE			APP_CUSTOM
-//#define APPCONF_CAN_BAUD_RATE		CAN_BAUD_75K
-
-// SIKORSKI
-#include "mcconf_Sikorski.h"
-#include "appconf_sikorski.h"
-// SIKORSKI
+//#include "app_erockit_conf.h"
 
 #include "hw.h"
+#include "mcconf_412_Sikorski.h"
+#include "appconf_sikorski.h"
 
 /*
  * Enable blackmagic probe output on SWD port
@@ -282,8 +217,25 @@
 #define LED_EXT_BATT_HIGH			33.0
 
 /*
+ * Output WS2811 signal on the HALL1 pin. Notice that hall sensors can't be used
+ * at the same time.
+ */
+#ifndef WS2811_ENABLE
+#define WS2811_ENABLE				0
+#endif
+#define WS2811_CLK_HZ				800000
+#define WS2811_LED_NUM				28
+#define WS2811_USE_CH2				1		// 0: CH1 (PB6) 1: CH2 (PB7)
+#ifndef WS2811_TEST
+#define WS2811_TEST					0		// Show a test pattern
+#endif
+
+/*
  * Servo output driver
  */
+#ifndef SERVO_OUT_ENABLE
+#define SERVO_OUT_ENABLE			0		// Enable servo output
+#endif
 #define SERVO_OUT_PULSE_MIN_US		1000	// Minimum pulse length in microseconds
 #define SERVO_OUT_PULSE_MAX_US		2000	// Maximum pulse length in microseconds
 #define SERVO_OUT_RATE_HZ			50		// Update rate in Hz
@@ -306,12 +258,6 @@
 #endif
 #ifndef AD2S1205_USE_HW_SPI_PINS
 #define AD2S1205_USE_HW_SPI_PINS	0
-#endif
-#ifndef MT6816_USE_HW_SPI_PINS
-#define MT6816_USE_HW_SPI_PINS		0
-#endif
-#ifndef AS504x_USE_SW_MOSI_PIN
-#define AS504x_USE_SW_MOSI_PIN 		0
 #endif
 
 /*
@@ -344,11 +290,9 @@
 
 // Global configuration variables
 extern bool conf_general_permanent_nrf_found;
-extern volatile backup_data g_backup;
 
 // Functions
 void conf_general_init(void);
-bool conf_general_store_backup_data(void);
 bool conf_general_read_eeprom_var_hw(eeprom_var *v, int address);
 bool conf_general_read_eeprom_var_custom(eeprom_var *v, int address);
 bool conf_general_store_eeprom_var_hw(eeprom_var *v, int address);
@@ -372,6 +316,5 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		bool store_mcconf_on_success, bool send_mcconf_on_success);
 int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
 		float min_current_in, float max_current_in, float openloop_rpm, float sl_erpm);
-
 
 #endif /* CONF_GENERAL_H_ */

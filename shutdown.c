@@ -19,7 +19,6 @@
 
 #include "shutdown.h"
 #include "app.h"
-#include "conf_general.h"
 
 #ifdef HW_SHUTDOWN_HOLD_ON
 
@@ -62,13 +61,6 @@ void shutdown_set_sampling_disabled(bool disabled) {
 	chMtxUnlock(&m_sample_mutex);
 }
 
-bool do_shutdown(void) {
-	conf_general_store_backup_data();
-	DISABLE_GATE();
-	HW_SHUTDOWN_HOLD_OFF();
-	return true;
-}
-
 static THD_FUNCTION(shutdown_thread, arg) {
 	(void)arg;
 
@@ -104,7 +96,9 @@ static THD_FUNCTION(shutdown_thread, arg) {
 		switch (conf->shutdown_mode) {
 		case SHUTDOWN_MODE_ALWAYS_OFF:
 			if (m_button_pressed) {
-				gates_disabled_here = do_shutdown();
+				DISABLE_GATE();
+				gates_disabled_here = true;
+				HW_SHUTDOWN_HOLD_OFF();
 			}
 			break;
 
@@ -114,7 +108,9 @@ static THD_FUNCTION(shutdown_thread, arg) {
 
 		default:
 			if (clicked) {
-				gates_disabled_here = do_shutdown();
+				DISABLE_GATE();
+				gates_disabled_here = true;
+				HW_SHUTDOWN_HOLD_OFF();
 			}
 			break;
 		}
@@ -147,7 +143,9 @@ static THD_FUNCTION(shutdown_thread, arg) {
 			}
 
 			if (m_inactivity_time >= shutdown_timeout && m_button_pressed) {
-				gates_disabled_here = do_shutdown();
+				DISABLE_GATE();
+				gates_disabled_here = true;
+				HW_SHUTDOWN_HOLD_OFF();
 			}
 		} else {
 			m_inactivity_time = 0.0;

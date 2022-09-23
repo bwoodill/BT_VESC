@@ -18,15 +18,11 @@
 #include "ch.h"
 #include "hal.h"
 #include "stm32f4xx_conf.h"
+#include "drv8323s.h"
 #include "comm_can.h"
 #include "mc_interface.h"
 #include "ledpwm.h"
 #include "utils.h"
-#include "main.h"
-
-#ifndef HW_VER_IS_100DX
-	#include "drv8323s.h"
-#endif
 
 typedef enum {
 	SWITCH_BOOTED = 0,
@@ -64,21 +60,10 @@ void hw_init_gpio(void) {
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
 	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
 
-#if defined(HW_VER_IS_100D_V2) || defined(HW_VER_IS_100DX)
-	palSetPadMode(PHASE_FILTER_GPIO, PHASE_FILTER_PIN,
-				  PAL_MODE_OUTPUT_PUSHPULL |
-				  PAL_STM32_OSPEED_HIGHEST);
-	PHASE_FILTER_OFF();
-	palSetPadMode(PHASE_FILTER_GPIO_M2, PHASE_FILTER_PIN_M2,
-				  PAL_MODE_OUTPUT_PUSHPULL |
-				  PAL_STM32_OSPEED_HIGHEST);
-	PHASE_FILTER_OFF_M2();
-#endif
 
 
 
-
-// LEDs
+	// LEDs
 	palSetPadMode(GPIOA, 8,
 				  PAL_MODE_OUTPUT_PUSHPULL |
 				  PAL_STM32_OSPEED_HIGHEST);
@@ -184,9 +169,8 @@ void hw_init_gpio(void) {
 	palSetPadMode(GPIOC, 4, PAL_MODE_INPUT_ANALOG);
 	palSetPadMode(GPIOC, 5, PAL_MODE_INPUT_ANALOG);
 	ENABLE_GATE();
-#ifndef HW_VER_IS_100DX
+
 	drv8323s_init();
-#endif
 }
 
 void hw_setup_adc_channels(void) {
@@ -370,7 +354,7 @@ static THD_FUNCTION(mux_thread, arg) {
 
 
 		ENABLE_V_BATT_DIV();
-		chThdSleepMicroseconds(400);
+		chThdSleepMicroseconds(300);
 		ADC_Value[ADC_IND_V_BATT] = ADC_Value[ADC_IND_ADC_MUX];
 	}
 }
@@ -387,15 +371,11 @@ void smart_switch_keep_on(void) {
 }
 
 void smart_switch_shut_down(void) {
-	mc_interface_select_motor_thread(2);
-	mc_interface_set_current(0);
-	mc_interface_lock();
-	mc_interface_select_motor_thread(1);
-	mc_interface_set_current(0);
-	mc_interface_lock();
 	switch_state = SWITCH_SHUTTING_DOWN;
 	palClearPad(SWITCH_OUT_GPIO, SWITCH_OUT_PIN);
+#ifdef HW_HAS_STORMCORE_SWITCH
 	palClearPad(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN);
+#endif
 	return;
 }
 
@@ -425,7 +405,7 @@ static THD_FUNCTION(switch_color_thread, arg) {
 		utils_fast_sincos_better(angle + 6.28/3.0, &s, &c);
 		switch_red = 0.75* c*c;
 		ledpwm_set_intensity(LED_HW3,switch_bright*switch_red);
-		chThdSleepMilliseconds(4);
+		chThdSleepMilliseconds(10);
 	}
 	float switch_red_old = switch_red_old;
 	float switch_green_old = switch_green;
@@ -450,7 +430,7 @@ static THD_FUNCTION(switch_color_thread, arg) {
 		ledpwm_set_intensity(LED_HW1, switch_bright*blue_now);
 		ledpwm_set_intensity(LED_HW2, switch_bright*green_now);
 		ledpwm_set_intensity(LED_HW3, switch_bright*red_now);
-		chThdSleepMilliseconds(2);
+		chThdSleepMilliseconds(10);
 	}
 
 	for (;;) {
@@ -514,35 +494,11 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 			break;
 		case SWITCH_TURN_ON_DELAY_ACTIVE:
 			switch_state = SWITCH_HELD_AFTER_TURN_ON;
-			mc_interface_select_motor_thread(2);
-			mc_interface_set_current(0);
-			mc_interface_lock();
-			mc_interface_select_motor_thread(1);
-			mc_interface_set_current(0);
-			mc_interface_lock();
-			int cts = 0;
-			//check if ADCS are active and working
-			while((ADC_Value[ADC_IND_V_BATT] < 1 || ADC_Value[ADC_IND_VIN_SENS] < 1) && (cts < 50)){
-				chThdSleepMilliseconds(100);
-				cts++;
-			}
-			cts = 0;
-			//Wait for precharge resistors to precharge bulk caps
-			while(((GET_BATT_VOLTAGE() - GET_INPUT_VOLTAGE()) > 8.0) && (cts < 50)){
-				chThdSleepMilliseconds(100);
-				cts++;
-			}
+			chThdSleepMilliseconds(5000);
 			palSetPad(SWITCH_PRECHARGED_GPIO, SWITCH_PRECHARGED_PIN);
-			mc_interface_select_motor_thread(2);
-			mc_interface_unlock();
-			mc_interface_select_motor_thread(1);
-			mc_interface_unlock();
-			//Wait for other systems to boot up before proceeding
-			while (!main_init_done()) {
-				chThdSleepMilliseconds(200);
-			}
 			break;
 		case SWITCH_HELD_AFTER_TURN_ON:
+			smart_switch_keep_on();
 			if(smart_switch_is_pressed()){
 				switch_state = SWITCH_HELD_AFTER_TURN_ON;
 			} else {
@@ -552,10 +508,10 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 		case SWITCH_TURNED_ON:
 			if (smart_switch_is_pressed()) {
 				millis_switch_pressed++;
-				switch_bright = 0.5;
+				switch_bright = 1.0;
 			} else {
 				millis_switch_pressed = 0;
-				switch_bright = 1.0;
+				switch_bright = 0.5;
 			}
 
 			if (millis_switch_pressed > SMART_SWITCH_MSECS_PRESSED_OFF) {
@@ -564,9 +520,6 @@ static THD_FUNCTION(smart_switch_thread, arg) {
 			break;
 		case SWITCH_SHUTTING_DOWN:
 			switch_bright = 0;
-			while (smart_switch_is_pressed()) {
-				chThdSleepMilliseconds(10);
-			}
 			comm_can_shutdown(255);
 			smart_switch_shut_down();
 			chThdSleepMilliseconds(10000);

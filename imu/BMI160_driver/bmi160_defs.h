@@ -760,7 +760,7 @@ enum bmi160_int_status_sel {
  */
 struct bmi160_int_status_bits
 {
-#ifdef LITTLE_ENDIAN
+#if LITTLE_ENDIAN == 1
     uint32_t step : 1;
     uint32_t sigmot : 1;
     uint32_t anym : 1;
@@ -793,8 +793,7 @@ struct bmi160_int_status_bits
     uint32_t orient_1_0 : 2;
     uint32_t orient_2 : 1;
     uint32_t flat : 1;
-#endif
-#ifdef BIG_ENDIAN
+#elif BIG_ENDIAN == 1
     uint32_t high_first_x : 1;
     uint32_t high_first_y : 1;
     uint32_t high_first_z : 1;
@@ -1103,7 +1102,7 @@ enum bmi160_any_sig_motion_active_interrupt_state {
 };
 struct bmi160_acc_tap_int_cfg
 {
-#ifdef LITTLE_ENDIAN
+#if LITTLE_ENDIAN == 1
 
     /*! tap threshold */
     uint16_t tap_thr : 5;
@@ -1122,8 +1121,7 @@ struct bmi160_acc_tap_int_cfg
 
     /*! tap enable, 1 - enable, 0 - disable */
     uint16_t tap_en : 1;
-#endif
-#ifdef BIG_ENDIAN
+#elif BIG_ENDIAN == 1
 
     /*! tap enable, 1 - enable, 0 - disable */
     uint16_t tap_en : 1;
@@ -1146,7 +1144,7 @@ struct bmi160_acc_tap_int_cfg
 };
 struct bmi160_acc_any_mot_int_cfg
 {
-#ifdef LITTLE_ENDIAN
+#if LITTLE_ENDIAN == 1
 
     /*! 1 any-motion enable, 0 - any-motion disable */
     uint8_t anymotion_en : 1;
@@ -1168,8 +1166,7 @@ struct bmi160_acc_any_mot_int_cfg
 
     /*! slope threshold */
     uint8_t anymotion_thr;
-#endif
-#ifdef BIG_ENDIAN
+#elif BIG_ENDIAN == 1
 
     /*! slope threshold */
     uint8_t anymotion_thr;
@@ -1195,7 +1192,7 @@ struct bmi160_acc_any_mot_int_cfg
 };
 struct bmi160_acc_sig_mot_int_cfg
 {
-#ifdef LITTLE_ENDIAN
+#if LITTLE_ENDIAN == 1
 
     /*! skip time of sig-motion interrupt */
     uint8_t sig_mot_skip : 2;
@@ -1211,8 +1208,7 @@ struct bmi160_acc_sig_mot_int_cfg
 
     /*! sig-motion threshold */
     uint8_t sig_mot_thres;
-#endif
-#ifdef BIG_ENDIAN
+#elif BIG_ENDIAN == 1
 
     /*! sig-motion threshold */
     uint8_t sig_mot_thres;
@@ -1232,7 +1228,7 @@ struct bmi160_acc_sig_mot_int_cfg
 };
 struct bmi160_acc_step_detect_int_cfg
 {
-#ifdef LITTLE_ENDIAN
+#if LITTLE_ENDIAN == 1
 
     /*! 1- step detector enable, 0- step detector disable */
     uint16_t step_detector_en : 1;
@@ -1248,8 +1244,7 @@ struct bmi160_acc_step_detect_int_cfg
 
     /*! minimum step buffer size*/
     uint16_t step_min_buf : 3;
-#endif
-#ifdef BIG_ENDIAN
+#elif BIG_ENDIAN == 1
 
     /*! minimum step buffer size*/
     uint16_t step_min_buf : 3;
@@ -1269,7 +1264,7 @@ struct bmi160_acc_step_detect_int_cfg
 };
 struct bmi160_acc_no_motion_int_cfg
 {
-#ifdef LITTLE_ENDIAN
+#if LITTLE_ENDIAN == 1
 
     /*! no motion interrupt x */
     uint16_t no_motion_x : 1;
@@ -1291,8 +1286,7 @@ struct bmi160_acc_no_motion_int_cfg
 
     /*! no motion threshold */
     uint8_t no_motion_thres;
-#endif
-#ifdef BIG_ENDIAN
+#elif BIG_ENDIAN == 1
 
     /*! no motion threshold */
     uint8_t no_motion_thres;
@@ -1318,7 +1312,7 @@ struct bmi160_acc_no_motion_int_cfg
 };
 struct bmi160_acc_orient_int_cfg
 {
-#ifdef LITTLE_ENDIAN
+#if LITTLE_ENDIAN == 1
 
     /*! thresholds for switching between the different orientations */
     uint16_t orient_mode : 2;
@@ -1340,8 +1334,7 @@ struct bmi160_acc_orient_int_cfg
 
     /*! 1 - orient enable, 0 - orient disable */
     uint8_t orient_en : 1;
-#endif
-#ifdef BIG_ENDIAN
+#elif BIG_ENDIAN == 1
 
     /*! 1 - orient enable, 0 - orient disable */
     uint8_t orient_en : 1;
@@ -1367,7 +1360,7 @@ struct bmi160_acc_orient_int_cfg
 };
 struct bmi160_acc_flat_detect_int_cfg
 {
-#ifdef LITTLE_ENDIAN
+#if LITTLE_ENDIAN == 1
 
     /*! flat threshold */
     uint16_t flat_theta : 6;
@@ -1381,8 +1374,7 @@ struct bmi160_acc_flat_detect_int_cfg
 
     /*! 1 - flat enable, 0 - flat disable */
     uint16_t flat_en : 1;
-#endif
-#ifdef BIG_ENDIAN
+#elif BIG_ENDIAN == 1
 
     /*! 1 - flat enable, 0 - flat disable */
     uint16_t flat_en : 1;
@@ -1400,7 +1392,7 @@ struct bmi160_acc_flat_detect_int_cfg
 };
 struct bmi160_acc_low_g_int_cfg
 {
-#ifdef LITTLE_ENDIAN
+#if LITTLE_ENDIAN == 1
 
     /*! low-g interrupt trigger delay */
     uint8_t low_dur;
@@ -1419,8 +1411,7 @@ struct bmi160_acc_low_g_int_cfg
 
     /*! 1 - enable low-g, 0 - disable low-g */
     uint8_t low_en : 1;
-#endif
-#ifdef BIG_ENDIAN
+#elif BIG_ENDIAN == 1
 
     /*! 1 - enable low-g, 0 - disable low-g */
     uint8_t low_en : 1;
@@ -1443,7 +1434,7 @@ struct bmi160_acc_low_g_int_cfg
 };
 struct bmi160_acc_high_g_int_cfg
 {
-#ifdef LITTLE_ENDIAN
+#if LITTLE_ENDIAN == 1
 
     /*! High-g interrupt x, 1 - enable, 0 - disable */
     uint8_t high_g_x : 1;
@@ -1465,8 +1456,7 @@ struct bmi160_acc_high_g_int_cfg
 
     /*! High-g duration */
     uint8_t high_dur;
-#endif
-#ifdef BIG_ENDIAN
+#elif BIG_ENDIAN == 1
 
     /*! High-g duration */
     uint8_t high_dur;
@@ -1492,7 +1482,7 @@ struct bmi160_acc_high_g_int_cfg
 };
 struct bmi160_int_pin_settg
 {
-#ifdef LITTLE_ENDIAN
+#if LITTLE_ENDIAN == 1
 
     /*! To enable either INT1 or INT2 pin as output.
      * 0- output disabled ,1- output enabled */
@@ -1514,8 +1504,7 @@ struct bmi160_int_pin_settg
 
     /*! latch duration*/
     uint16_t latch_dur : 4;
-#endif
-#ifdef BIG_ENDIAN
+#elif BIG_ENDIAN == 1
 
     /*! latch duration*/
     uint16_t latch_dur : 4;

@@ -1,5 +1,5 @@
 /*
-	Copyright 2016 - 2021 Benjamin Vedder	benjamin@vedder.se
+	Copyright 2016 - 2019 Benjamin Vedder	benjamin@vedder.se
 
 	This file is part of the VESC firmware.
 
@@ -33,17 +33,10 @@
 #include "confgenerator.h"
 #include "mempools.h"
 #include "worker.h"
-#include "crc.h"
-#include "terminal.h"
 
-// SIKORSKI
 #include <applications/settings.h>
-// SIKORSKI
 #include <string.h>
 #include <math.h>
-
-//#define TEST_BAD_MC_CRC
-//#define TEST_BAD_APP_CRC
 
 // EEPROM settings
 #define EEPROM_BASE_MCCONF		1000
@@ -51,12 +44,10 @@
 #define EEPROM_BASE_HW			3000
 #define EEPROM_BASE_CUSTOM		4000
 #define EEPROM_BASE_MCCONF_2	5000
-#define EEPROM_BASE_BACKUP		6000
 
 // Global variables
 uint16_t VirtAddVarTab[NB_OF_VAR];
 bool conf_general_permanent_nrf_found = false;
-__attribute__((section(".ram4"))) volatile backup_data g_backup;
 
 // Private functions
 static bool read_eeprom_var(eeprom_var *v, int address, uint16_t base);
@@ -83,86 +74,11 @@ void conf_general_init(void) {
 		VirtAddVarTab[ind++] = EEPROM_BASE_CUSTOM + i;
 	}
 
-	for (unsigned int i = 0;i < (sizeof(backup_data) / 2);i++) {
-		VirtAddVarTab[ind++] = EEPROM_BASE_BACKUP + i;
-	}
-
 	FLASH_Unlock();
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
 			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
 	EE_Init();
 	FLASH_Lock();
-
-	// Read backup data
-	bool is_ok = true;
-	backup_data backup_tmp;
-	uint8_t *data_addr = (uint8_t*)&backup_tmp;
-	uint16_t var;
-
-	for (unsigned int i = 0;i < (sizeof(backup_data) / 2);i++) {
-		if (EE_ReadVariable(EEPROM_BASE_BACKUP + i, &var) == 0) {
-			data_addr[2 * i] = (var >> 8) & 0xFF;
-			data_addr[2 * i + 1] = var & 0xFF;
-		} else {
-			is_ok = false;
-			break;
-		}
-	}
-
-	if (!is_ok) {
-		memset(data_addr, 0, sizeof(backup_data));
-
-		// If the missing data is a result of programming it might still be in RAM4. Check
-		// and recover the valid values one by one.
-
-		if (g_backup.odometer_init_flag == BACKUP_VAR_INIT_CODE) {
-			backup_tmp.odometer = g_backup.odometer;
-		}
-
-		if (g_backup.runtime_init_flag == BACKUP_VAR_INIT_CODE) {
-			backup_tmp.runtime = g_backup.runtime;
-		}
-	}
-
-	backup_tmp.odometer_init_flag = BACKUP_VAR_INIT_CODE;
-	backup_tmp.runtime_init_flag = BACKUP_VAR_INIT_CODE;
-
-	g_backup = backup_tmp;
-	conf_general_store_backup_data();
-}
-
-/*
- * Store backup data to emulated eeprom. Currently this is only done from the shutdown function, which
- * only works if the hardware has a power switch. It would be possible to do this when the input voltage
- * drops (e.g. on FAULT_CODE_UNDER_VOLTAGE) to not rely on a power switch. The risk with that is that
- * a page swap might longer than the capacitors have voltage left, which could make cause the motor and
- * app config to get lost.
- */
-bool conf_general_store_backup_data(void) {
-	timeout_configure_IWDT_slowest();
-
-	bool is_ok = true;
-	uint8_t *data_addr = (uint8_t*)&g_backup;
-	uint16_t var;
-
-	FLASH_Unlock();
-	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
-			FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
-
-	for (unsigned int i = 0;i < (sizeof(backup_data) / 2);i++) {
-		var = (data_addr[2 * i] << 8) & 0xFF00;
-		var |= data_addr[2 * i + 1] & 0xFF;
-
-		if (EE_WriteVariable(EEPROM_BASE_BACKUP + i, var) != FLASH_COMPLETE) {
-			is_ok = false;
-			break;
-		}
-	}
-	FLASH_Lock();
-
-	timeout_configure_IWDT();
-
-	return is_ok;
 }
 
 /**
@@ -295,26 +211,10 @@ void conf_general_read_app_configuration(app_configuration *conf) {
 		}
 	}
 
-	// check CRC
-#ifdef TEST_BAD_APP_CRC
-	conf->crc++;
-#endif
-	if(conf->crc != app_calc_crc(conf)) {
-		is_ok = false;
-//		mc_interface_fault_stop(FAULT_CODE_FLASH_CORRUPTION_APP_CFG, false, false);
-		fault_data f;
-		f.fault = FAULT_CODE_FLASH_CORRUPTION_APP_CFG;
-		terminal_add_fault_data(&f);
-	}
-
 	// Set the default configuration
 	if (!is_ok) {
 		confgenerator_set_defaults_appconf(conf);
-
-		// SIKORSKI
 		sikorski_set_defaults(&conf->app_divex_conf);
-		// SIKORSKI
-
 	}
 }
 
@@ -332,22 +232,10 @@ bool conf_general_store_app_configuration(app_configuration *conf) {
 	mc_interface_release_motor();
 	mc_interface_lock();
 
-	if (!mc_interface_wait_for_motor_release(2.0)) {
-		mc_interface_unlock();
-		mc_interface_select_motor_thread(motor_old);
-		return false;
-	}
-
 	mc_interface_select_motor_thread(2);
 	mc_interface_unlock();
 	mc_interface_release_motor();
 	mc_interface_lock();
-
-	if (!mc_interface_wait_for_motor_release(2.0)) {
-		mc_interface_unlock();
-		mc_interface_select_motor_thread(motor_old);
-		return false;
-	}
 
 	utils_sys_lock_cnt();
 
@@ -356,8 +244,6 @@ bool conf_general_store_app_configuration(app_configuration *conf) {
 	bool is_ok = true;
 	uint8_t *conf_addr = (uint8_t*)conf;
 	uint16_t var;
-
-	conf->crc = app_calc_crc(conf);
 
 	FLASH_Unlock();
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
@@ -412,18 +298,6 @@ void conf_general_read_mc_configuration(mc_configuration *conf, bool is_motor_2)
 		}
 	}
 
-	// check CRC
-#ifdef TEST_BAD_MC_CRC
-	conf->crc++;
-#endif
-	if(conf->crc != mc_interface_calc_crc(conf, is_motor_2)) {
-		is_ok = false;
-//		mc_interface_fault_stop(FAULT_CODE_FLASH_CORRUPTION_MC_CFG, is_motor_2, false);
-		fault_data f;
-		f.fault = FAULT_CODE_FLASH_CORRUPTION_MC_CFG;
-		terminal_add_fault_data(&f);
-	}
-
 	if (!is_ok) {
 		confgenerator_set_defaults_mcconf(conf, true);
 	}
@@ -449,22 +323,10 @@ bool conf_general_store_mc_configuration(mc_configuration *conf, bool is_motor_2
 	mc_interface_release_motor();
 	mc_interface_lock();
 
-	if (!mc_interface_wait_for_motor_release(2.0)) {
-		mc_interface_unlock();
-		mc_interface_select_motor_thread(motor_old);
-		return false;
-	}
-
 	mc_interface_select_motor_thread(2);
 	mc_interface_unlock();
 	mc_interface_release_motor();
 	mc_interface_lock();
-
-	if (!mc_interface_wait_for_motor_release(2.0)) {
-		mc_interface_unlock();
-		mc_interface_select_motor_thread(motor_old);
-		return false;
-	}
 
 	utils_sys_lock_cnt();
 
@@ -473,8 +335,6 @@ bool conf_general_store_mc_configuration(mc_configuration *conf, bool is_motor_2
 	bool is_ok = true;
 	uint8_t *conf_addr = (uint8_t*)conf;
 	unsigned int base = is_motor_2 ? EEPROM_BASE_MCCONF_2 : EEPROM_BASE_MCCONF;
-
-	conf->crc = mc_interface_calc_crc(conf, is_motor_2);
 
 	FLASH_Unlock();
 	FLASH_ClearFlag(FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR |
@@ -545,9 +405,8 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 	// Disable timeout
 	systime_t tout = timeout_get_timeout_msec();
 	float tout_c = timeout_get_brake_current();
-	KILL_SW_MODE tout_ksw = timeout_get_kill_sw_mode();
 	timeout_reset();
-	timeout_configure(60000, 0.0, KILL_SW_MODE_DISABLED);
+	timeout_configure(60000, 0.0);
 
 	mc_interface_lock();
 
@@ -560,7 +419,6 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 		if (i == 1) {
 			mc_interface_lock_override_once();
 			mc_interface_release_motor();
-			mc_interface_wait_for_motor_release(1.0);
 			mcconf->sl_min_erpm = 2 * min_rpm;
 			mcconf->sl_cycle_int_limit = 20;
 			mc_interface_lock_override_once();
@@ -571,7 +429,6 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 		} else if (i == 2) {
 			mc_interface_lock_override_once();
 			mc_interface_release_motor();
-			mc_interface_wait_for_motor_release(1.0);
 			mcconf->sl_min_erpm = 4 * min_rpm;
 			mcconf->comm_mode = COMM_MODE_DELAY;
 			mc_interface_lock_override_once();
@@ -612,7 +469,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 
 	if (!started) {
 		mc_interface_set_current(0.0);
-		timeout_configure(tout, tout_c, tout_ksw);
+		timeout_configure(tout, tout_c);
 		mc_interface_set_configuration(mcconf_old);
 		mc_interface_unlock();
 		mempools_free_mcconf(mcconf);
@@ -694,7 +551,6 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 
 	mc_interface_lock_override_once();
 	mc_interface_release_motor();
-	mc_interface_wait_for_motor_release(1.0);
 
 	// Try to figure out the coupling factor
 	avg_cycle_integrator_running -= *int_limit;
@@ -704,7 +560,7 @@ bool conf_general_detect_motor_param(float current, float min_rpm, float low_dut
 
 	// Restore settings
 	mc_interface_set_configuration(mcconf_old);
-	timeout_configure(tout, tout_c, tout_ksw);
+	timeout_configure(tout, tout_c);
 
 	mc_interface_unlock();
 
@@ -777,9 +633,8 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 	// Disable timeout
 	systime_t tout = timeout_get_timeout_msec();
 	float tout_c = timeout_get_brake_current();
-	KILL_SW_MODE tout_ksw = timeout_get_kill_sw_mode();
 	timeout_reset();
-	timeout_configure(60000, 0.0, KILL_SW_MODE_DISABLED);
+	timeout_configure(60000, 0.0);
 
 	mc_interface_lock();
 
@@ -792,7 +647,6 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 		if (i == 1) {
 			mc_interface_lock_override_once();
 			mc_interface_release_motor();
-			mc_interface_wait_for_motor_release(1.0);
 			mcconf->sl_cycle_int_limit = 250;
 			mc_interface_lock_override_once();
 			mc_interface_set_configuration(mcconf);
@@ -802,7 +656,6 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 		} else if (i == 2) {
 			mc_interface_lock_override_once();
 			mc_interface_release_motor();
-			mc_interface_wait_for_motor_release(1.0);
 			mcconf->sl_min_erpm = 2 * min_erpm;
 			mcconf->sl_cycle_int_limit = 20;
 			mc_interface_lock_override_once();
@@ -813,7 +666,6 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 		} else if (i == 3) {
 			mc_interface_lock_override_once();
 			mc_interface_release_motor();
-			mc_interface_wait_for_motor_release(1.0);
 			mcconf->sl_min_erpm = 4 * min_erpm;
 			mcconf->comm_mode = COMM_MODE_DELAY;
 			mc_interface_lock_override_once();
@@ -854,7 +706,7 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 
 	if (!started) {
 		mc_interface_set_current(0.0);
-		timeout_configure(tout, tout_c, tout_ksw);
+		timeout_configure(tout, tout_c);
 		mc_interface_set_configuration(mcconf);
 		mc_interface_unlock();
 		mempools_free_mcconf(mcconf);
@@ -877,7 +729,7 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 		chThdSleepMilliseconds(1.0);
 	}
 
-	timeout_configure(tout, tout_c, tout_ksw);
+	timeout_configure(tout, tout_c);
 	mc_interface_set_configuration(mcconf_old);
 	mc_interface_unlock();
 	mc_interface_set_current(0.0);
@@ -887,7 +739,7 @@ bool conf_general_measure_flux_linkage(float current, float duty,
 	avg_current /= samples;
 	avg_voltage -= avg_current * res * 2.0;
 
-	*linkage = avg_voltage / (sqrtf(3.0) * RPM2RADPS_f(avg_rpm));
+	*linkage = avg_voltage * 60.0 / (sqrtf(3.0) * 2.0 * M_PI * avg_rpm);
 
 	mempools_free_mcconf(mcconf);
 	mempools_free_mcconf(mcconf_old);
@@ -994,9 +846,8 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 	// Disable timeout
 	systime_t tout = timeout_get_timeout_msec();
 	float tout_c = timeout_get_brake_current();
-	KILL_SW_MODE tout_ksw = timeout_get_kill_sw_mode();
 	timeout_reset();
-	timeout_configure(60000, 0.0, KILL_SW_MODE_DISABLED);
+	timeout_configure(60000, 0.0);
 
 	mc_interface_lock();
 
@@ -1079,47 +930,29 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		iq_avg /= samples2;
 		id_avg /= samples2;
 
-		float rad_s = RPM2RADPS_f(rpm_now);
+		float rad_s = rpm_now * ((2.0 * M_PI) / 60.0);
 		float v_mag = sqrtf(SQ(vq_avg) + SQ(vd_avg));
 		float i_mag = sqrtf(SQ(iq_avg) + SQ(id_avg));
-		*linkage = (v_mag - res * i_mag) / rad_s - i_mag * ind;
+		*linkage = (v_mag - (2.0 / 3.0) * res * i_mag) / rad_s - (2.0 / 3.0) * i_mag * ind;
 
 		mcconf->foc_motor_r = res;
 		mcconf->foc_motor_l = ind;
 		mcconf->foc_motor_flux_linkage = *linkage;
 		mcconf->foc_observer_gain = 0.5e3 / SQ(*linkage);
 		mc_interface_set_configuration(mcconf);
-
-		// Give the observer time to settle
 		chThdSleepMilliseconds(500);
-
-		// Turn off the FETs
-		mcpwm_foc_stop_pwm(false);
-
-		// Clear any lingering current set points
 		mcpwm_foc_set_current(0.0);
-
-		// Let the H-bridges settle
 		chThdSleepMilliseconds(5);
 
 		float linkage_sum = 0.0;
 		float linkage_samples = 0.0;
-		for (int i = 0;i < 2000;i++) {
-			float rad_s_now = RPM2RADPS_f(mcpwm_foc_get_rpm_faster());
-			if (fabsf(mcpwm_foc_get_duty_cycle_now()) < 0.02) {
+		for (int i = 0;i < 20000;i++) {
+			float rad_s_now = mcpwm_foc_get_rpm_faster() * ((2.0 * M_PI) / 60.0);
+			if (fabsf(mcpwm_foc_get_duty_cycle_now()) < 0.01) {
 				break;
 			}
 
 			linkage_sum += mcpwm_foc_get_vq() / rad_s_now;
-
-			// Optionally use magnitude
-//			linkage_sum += sqrtf(SQ(mcpwm_foc_get_vq()) + SQ(mcpwm_foc_get_vd())) / rad_s_now;
-
-			// Optionally use magnitude of observer state
-//			float x1, x2;
-//			mcpwm_foc_get_observer_state(&x1, &x2);
-//			linkage_sum += sqrtf(SQ(x1) + SQ(x2));
-
 			linkage_samples += 1.0;
 			chThdSleep(1);
 		}
@@ -1135,10 +968,9 @@ bool conf_general_measure_flux_linkage_openloop(float current, float duty,
 		result = true;
 	}
 
-	timeout_configure(tout, tout_c, tout_ksw);
+	timeout_configure(tout, tout_c);
 	mc_interface_unlock();
 	mc_interface_release_motor();
-	mc_interface_wait_for_motor_release(1.0);
 	mc_interface_set_configuration(mcconf_old);
 	mempools_free_mcconf(mcconf);
 	mempools_free_mcconf(mcconf_old);
@@ -1201,9 +1033,8 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 	// Disable timeout
 	systime_t tout = timeout_get_timeout_msec();
 	float tout_c = timeout_get_brake_current();
-	KILL_SW_MODE tout_ksw = timeout_get_kill_sw_mode();
 	timeout_reset();
-	timeout_configure(60000, 0.0, KILL_SW_MODE_DISABLED);
+	timeout_configure(60000, 0.0);
 
 	mc_interface_lock();
 
@@ -1278,10 +1109,9 @@ int conf_general_autodetect_apply_sensors_foc(float current,
 		res = true;
 	}
 
-	timeout_configure(tout, tout_c, tout_ksw);
+	timeout_configure(tout, tout_c);
 	mc_interface_unlock();
 	mc_interface_release_motor();
-	mc_interface_wait_for_motor_release(1.0);
 	mc_interface_set_configuration(mcconf_old);
 
 	// On success store the mc configuration, also send it to VESC Tool.
@@ -1310,8 +1140,8 @@ void conf_general_calc_apply_foc_cc_kp_ki_gain(mc_configuration *mcconf, float t
 	float bw = 1.0 / (tc * 1e-6);
 	float kp = l * bw;
 	float ki = r * bw;
-	float gain = 1.0e-3 / SQ(lambda);
-//	float gain = (0.00001 / r) / SQ(lambda); // Old method
+	float gain = 1.0e-3 / (lambda * lambda);
+//	float gain = (0.00001 / r) / (lambda * lambda); // Old method
 
 	mcconf->foc_current_kp = kp;
 	mcconf->foc_current_ki = ki;
@@ -1319,7 +1149,7 @@ void conf_general_calc_apply_foc_cc_kp_ki_gain(mc_configuration *mcconf, float t
 }
 
 static bool measure_r_l_imax(float current_min, float current_max,
-		float max_power_loss, float *r, float *l, float *ld_lq_diff, float *i_max) {
+		float max_power_loss, float *r, float *l, float *i_max) {
 	float current_start = current_max / 50;
 	if (current_start < (current_min * 1.1)) {
 		current_start = current_min * 1.1;
@@ -1340,7 +1170,7 @@ static bool measure_r_l_imax(float current_min, float current_max,
 			return false;
 		}
 
-		if ((i * i * res_tmp * 1.5) >= (max_power_loss / 5.0)) {
+		if ((i * i * res_tmp) >= (max_power_loss / 3.0)) {
 			break;
 		}
 	}
@@ -1350,9 +1180,8 @@ static bool measure_r_l_imax(float current_min, float current_max,
 	mcconf->foc_motor_r = *r;
 	mc_interface_set_configuration(mcconf);
 
-	*l = mcpwm_foc_measure_inductance_current(i_last, 100, 0, ld_lq_diff) * 1e-6;
-	*ld_lq_diff *= 1e-6;
-	*i_max = sqrtf(max_power_loss / *r / 1.5);
+	*l = mcpwm_foc_measure_inductance_current(i_last, 100, 0, 0) * 1e-6;
+	*i_max = sqrtf(max_power_loss / *r);
 	utils_truncate_number(i_max, HW_LIM_CURRENT);
 
 	mcconf->foc_motor_r = res_old;
@@ -1420,7 +1249,6 @@ typedef struct {
 	float max_power_loss;
 	float r;
 	float l;
-	float ld_lq_diff;
 	float i_max;
 	bool res;
 	int motor;
@@ -1433,7 +1261,7 @@ static void measure_r_l_imax_task(void *arg) {
 			args->current_min,
 			args->current_max,
 			args->max_power_loss,
-			&args->r, &args->l, &args->ld_lq_diff, &args->i_max);
+			&args->r, &args->l, &args->i_max);
 }
 
 typedef struct {
@@ -1521,16 +1349,14 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 
 #ifdef HW_HAS_DUAL_MOTORS
 	mc_interface_select_motor_thread(2);
-	mc_configuration *mcconf_second = mempools_alloc_mcconf();
 	mc_configuration *mcconf_old_second = mempools_alloc_mcconf();
-	*mcconf_second = *mc_interface_get_configuration();
-	*mcconf_old_second = *mcconf_second;
+	*mcconf_old_second = *mc_interface_get_configuration();
 	mc_interface_select_motor_thread(1);
 #endif
 
 	mcconf->motor_type = MOTOR_TYPE_FOC;
 	mcconf->foc_sensor_mode = FOC_SENSOR_MODE_SENSORLESS;
-	mcconf->foc_f_zv = 10000.0; // Lower f_zv => less dead-time distortion
+	mcconf->foc_f_sw = 10000.0; // Lower f_sw => less dead-time distortion
 	mcconf->foc_current_kp = 0.0005;
 	mcconf->foc_current_ki = 1.0;
 	mcconf->l_current_max = MCCONF_L_CURRENT_MAX;
@@ -1544,22 +1370,8 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 	mc_interface_set_configuration(mcconf);
 
 #ifdef HW_HAS_DUAL_MOTORS
-	mcconf_second->motor_type = MOTOR_TYPE_FOC;
-	mcconf_second->foc_sensor_mode = FOC_SENSOR_MODE_SENSORLESS;
-	mcconf_second->foc_f_zv = 10000.0; // Lower f_zv => less dead-time distortion
-	mcconf_second->foc_current_kp = 0.0005;
-	mcconf_second->foc_current_ki = 1.0;
-	mcconf_second->l_current_max = MCCONF_L_CURRENT_MAX;
-	mcconf_second->l_current_min = MCCONF_L_CURRENT_MIN;
-	mcconf_second->l_current_max_scale = MCCONF_L_CURRENT_MAX_SCALE;
-	mcconf_second->l_current_min_scale = MCCONF_L_CURRENT_MIN_SCALE;
-	mcconf_second->l_watt_max = MCCONF_L_WATT_MAX;
-	mcconf_second->l_watt_min = MCCONF_L_WATT_MIN;
-	mcconf_second->l_max_erpm = MCCONF_L_RPM_MAX;
-	mcconf_second->l_min_erpm = MCCONF_L_RPM_MIN;
-
 	mc_interface_select_motor_thread(2);
-	mc_interface_set_configuration(mcconf_second);
+	mc_interface_set_configuration(mcconf);
 	mc_interface_select_motor_thread(1);
 #endif
 
@@ -1572,7 +1384,6 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		mc_interface_select_motor_thread(2);
 		mc_interface_set_configuration(mcconf_old_second);
 		mc_interface_select_motor_thread(1);
-		mempools_free_mcconf(mcconf_second);
 		mempools_free_mcconf(mcconf_old_second);
 #endif
 		mc_interface_select_motor_thread(motor_last);
@@ -1586,9 +1397,8 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 	// Disable timeout
 	systime_t tout = timeout_get_timeout_msec();
 	float tout_c = timeout_get_brake_current();
-	KILL_SW_MODE tout_ksw = timeout_get_kill_sw_mode();
 	timeout_reset();
-	timeout_configure(60000, 0.0, KILL_SW_MODE_DISABLED);
+	timeout_configure(60000, 0.0);
 
 	mc_interface_lock();
 
@@ -1609,10 +1419,9 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 
 	float r = 0.0;
 	float l = 0.0;
-	float ld_lq_diff;
 	float i_max = 0.0;
 	bool res_r_l_imax_m1 = measure_r_l_imax(mcconf->cc_min_current,
-			mcconf->l_current_max, max_power_loss, &r, &l, &ld_lq_diff, &i_max);
+			mcconf->l_current_max, max_power_loss, &r, &l, &i_max);
 
 #ifdef HW_HAS_DUAL_MOTORS
 	worker_wait();
@@ -1622,10 +1431,9 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 #endif
 
 	if (!res_r_l_imax_m1 || !res_r_l_imax_m2) {
-		timeout_configure(tout, tout_c, tout_ksw);
+		timeout_configure(tout, tout_c);
 		mc_interface_unlock();
 		mc_interface_release_motor();
-		mc_interface_wait_for_motor_release(1.0);
 		mc_interface_set_configuration(mcconf_old);
 		mempools_free_mcconf(mcconf);
 		mempools_free_mcconf(mcconf_old);
@@ -1633,7 +1441,6 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		mc_interface_select_motor_thread(2);
 		mc_interface_set_configuration(mcconf_old_second);
 		mc_interface_select_motor_thread(1);
-		mempools_free_mcconf(mcconf_second);
 		mempools_free_mcconf(mcconf_old_second);
 #endif
 		mc_interface_select_motor_thread(motor_last);
@@ -1643,13 +1450,12 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 	// Increase switching frequency for flux linkage measurement
 	// as dead-time distortion has less effect at higher modulation.
 	// Having a smooth rotation is more important.
-	mcconf->foc_f_zv = 20000.0;
+	mcconf->foc_f_sw = 20000.0;
 	mc_interface_set_configuration(mcconf);
 
 #ifdef HW_HAS_DUAL_MOTORS
 	mc_interface_select_motor_thread(2);
-	mcconf_second->foc_f_zv = 20000.0;
-	mc_interface_set_configuration(mcconf_second);
+	mc_interface_set_configuration(mcconf);
 	mc_interface_select_motor_thread(1);
 #endif
 
@@ -1687,16 +1493,7 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		mcconf_old->motor_type = MOTOR_TYPE_FOC;
 		mcconf_old->foc_motor_r = r;
 		mcconf_old->foc_motor_l = l;
-		mcconf_old->foc_motor_ld_lq_diff = ld_lq_diff;
 		mcconf_old->foc_motor_flux_linkage = lambda;
-
-		if (mc_interface_temp_motor_filtered() > -10) {
-			mcconf_old->foc_temp_comp_base_temp = mc_interface_temp_motor_filtered();
-#ifdef HW_HAS_PHASE_FILTERS
-			mcconf_old->foc_temp_comp = true;
-#endif
-		}
-
 		conf_general_calc_apply_foc_cc_kp_ki_gain(mcconf_old, 1000);
 		mc_interface_set_configuration(mcconf_old);
 
@@ -1706,21 +1503,14 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		mcconf_old_second->motor_type = MOTOR_TYPE_FOC;
 		mcconf_old_second->foc_motor_r = r_l_imax_args.r;
 		mcconf_old_second->foc_motor_l = r_l_imax_args.l;
-		mcconf_old_second->foc_motor_ld_lq_diff = r_l_imax_args.ld_lq_diff;
 		mcconf_old_second->foc_motor_flux_linkage = linkage_args.linkage;
 		conf_general_calc_apply_foc_cc_kp_ki_gain(mcconf_old_second, 1000);
 		mc_interface_select_motor_thread(2);
-
-		if (mc_interface_temp_motor_filtered() > -10) {
-			mcconf_old_second->foc_temp_comp_base_temp = mc_interface_temp_motor_filtered();
-#ifdef HW_HAS_PHASE_FILTERS
-			mcconf_old_second->foc_temp_comp = true;
-#endif
-		}
-
 		mc_interface_set_configuration(mcconf_old_second);
 		mc_interface_select_motor_thread(1);
 #endif
+
+		// TODO: optionally apply temperature compensation here.
 
 		wait_motor_stop(10000);
 
@@ -1751,11 +1541,9 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 		result = -10;
 	}
 
-	timeout_configure(tout, tout_c, tout_ksw);
-	mc_interface_lock_override_once();
-	mc_interface_release_motor();
-	mc_interface_wait_for_motor_release(1.0);
+	timeout_configure(tout, tout_c);
 	mc_interface_unlock();
+	mc_interface_release_motor();
 
 	if (result < 0) {
 		mc_interface_set_configuration(mcconf_old);
@@ -1772,7 +1560,6 @@ int conf_general_detect_apply_all_foc(float max_power_loss,
 	mempools_free_mcconf(mcconf);
 	mempools_free_mcconf(mcconf_old);
 #ifdef HW_HAS_DUAL_MOTORS
-	mempools_free_mcconf(mcconf_second);
 	mempools_free_mcconf(mcconf_old_second);
 #endif
 
@@ -1849,17 +1636,8 @@ int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
 	mc_interface_set_configuration(mcconf);
 #ifdef HW_HAS_DUAL_MOTORS
 	mc_interface_select_motor_thread(2);
-	mc_configuration *mcconf_second = mempools_alloc_mcconf();
-	*mcconf_second = *mc_interface_get_configuration();
-
-	mcconf_second->l_in_current_min = mcconf->l_in_current_min;
-	mcconf_second->l_in_current_max = mcconf->l_in_current_max;
-	mcconf_second->foc_openloop_rpm = mcconf->foc_openloop_rpm;
-	mcconf_second->foc_sl_erpm = mcconf->foc_sl_erpm;
-
-	mc_interface_set_configuration(mcconf_second);
+	mc_interface_set_configuration(mcconf);
 	mc_interface_select_motor_thread(1);
-	mempools_free_mcconf(mcconf_second);
 #endif
 
 	int can_devs = 0;
@@ -1872,18 +1650,13 @@ int conf_general_detect_apply_all_foc_can(bool detect_can, float max_power_loss,
 				continue;
 			}
 #endif
-			HW_TYPE hw_type;
-			if (comm_can_ping(i, &hw_type)) {
-				if (hw_type != HW_TYPE_VESC) {
-					continue;
-				}
 
+			if (comm_can_ping(i)) {
 				comm_can_conf_current_limits_in(i, false, mcconf->l_in_current_min, mcconf->l_in_current_max);
 				comm_can_conf_foc_erpms(i, false, mcconf->foc_openloop_rpm, mcconf->foc_sl_erpm);
 				comm_can_detect_apply_all_foc(i, true, max_power_loss);
 				can_devs++;
 
-				// If some other controller has the same ID, change the local one.
 				if (i == id_new) {
 					// Add 2 in case this was a dual controller
 					id_new++;
